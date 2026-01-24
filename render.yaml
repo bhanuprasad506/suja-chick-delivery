@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: suja-chick-delivery
+    env: node
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd server && npm install && npm run dev:js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
