@@ -21,27 +21,80 @@ app.get('/deliveries', (req, res) => {
 });
 
 app.post('/deliveries', (req, res) => {
-  const { customerName, chickType, loadedBoxWeight, emptyBoxWeight, numberOfBoxes, notes } = req.body;
+  const { 
+    customerName, 
+    chickType, 
+    loadedBoxWeight, 
+    emptyBoxWeight, 
+    numberOfBoxes, 
+    notes,
+    loadedWeightsList,
+    emptyWeightsList
+  } = req.body;
   
   if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const netWeight = loadedBoxWeight - emptyBoxWeight;
+  const netWeight = loadedBoxWeight - emptyBoxWeight; // Just the simple calculation
+  
   const delivery = {
     id: idCounter++,
     customerName,
     chickType,
     loadedBoxWeight,
     emptyBoxWeight,
-    numberOfBoxes,
+    numberOfBoxes: numberOfBoxes, // Just for info, no calculation
     notes,
-    netWeight,
+    netWeight: netWeight,
+    loadedWeightsList: loadedWeightsList || [],
+    emptyWeightsList: emptyWeightsList || [],
     createdAt: new Date().toISOString()
   };
 
   deliveries.push(delivery);
   res.status(201).json(delivery);
+});
+
+app.put('/deliveries/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { 
+    customerName, 
+    chickType, 
+    loadedBoxWeight, 
+    emptyBoxWeight, 
+    numberOfBoxes, 
+    notes,
+    loadedWeightsList,
+    emptyWeightsList
+  } = req.body;
+  
+  const index = deliveries.findIndex(d => d.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Delivery not found' });
+  }
+
+  if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const netWeight = loadedBoxWeight - emptyBoxWeight; // Simple subtraction
+  
+  const updatedDelivery = {
+    ...deliveries[index],
+    customerName,
+    chickType,
+    loadedBoxWeight,
+    emptyBoxWeight,
+    numberOfBoxes: numberOfBoxes,
+    notes,
+    netWeight: netWeight,
+    loadedWeightsList: loadedWeightsList || [],
+    emptyWeightsList: emptyWeightsList || [],
+  };
+
+  deliveries[index] = updatedDelivery;
+  res.json(updatedDelivery);
 });
 
 app.delete('/deliveries/:id', (req, res) => {
