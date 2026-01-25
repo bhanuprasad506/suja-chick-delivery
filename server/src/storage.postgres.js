@@ -4,14 +4,21 @@ class PostgresStorage {
   constructor() {
     // Use Render's free PostgreSQL or other free services
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/suja_deliveries',
+      connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
-    this.initDatabase();
+    this.initialized = false;
   }
 
   async initDatabase() {
+    if (this.initialized) return;
+    
     try {
+      // Test connection first
+      await this.pool.query('SELECT NOW()');
+      console.log('✅ Database connection successful');
+      
+      // Create table
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS deliveries (
           id SERIAL PRIMARY KEY,
@@ -27,14 +34,24 @@ class PostgresStorage {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      console.log('Database initialized successfully');
+      
+      this.initialized = true;
+      console.log('✅ Database table initialized successfully');
     } catch (err) {
-      console.error('Database initialization error:', err);
+      console.error('❌ Database initialization error:', err);
+      throw err;
+    }
+  }
+
+  async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initDatabase();
     }
   }
 
   async list() {
     try {
+      await this.ensureInitialized();
       const result = await this.pool.query(
         'SELECT * FROM deliveries ORDER BY created_at DESC'
       );
@@ -52,14 +69,21 @@ class PostgresStorage {
         createdAt: row.created_at.toISOString()
       }));
     } catch (err) {
-      console.error('Error listing deliveries:', err);
+      console.error('❌ Error listing deliveries:', err);
       return [];
     }
   }
 
   async create(input) {
     try {
+      await this.ensureInitialized();
       const netWeight = input.loadedBoxWeight - input.emptyBoxWeight;
+      
+      console.log('📝 Creating delivery:', {
+        customer: input.customerName,
+        type: input.chickType,
+        netWeight: netWeight
+      });
       
       const result = await this.pool.query(`
         INSERT INTO deliveries (
@@ -80,7 +104,7 @@ class PostgresStorage {
       ]);
 
       const row = result.rows[0];
-      return {
+      const delivery = {
         id: row.id,
         customerName: row.customer_name,
         chickType: row.chick_type,
@@ -93,14 +117,18 @@ class PostgresStorage {
         emptyWeightsList: JSON.parse(row.empty_weights_list || '[]'),
         createdAt: row.created_at.toISOString()
       };
+      
+      console.log('✅ Delivery created successfully:', delivery.id);
+      return delivery;
     } catch (err) {
-      console.error('Error creating delivery:', err);
+      console.error('❌ Error creating delivery:', err);
       throw err;
     }
   }
 
   async update(id, input) {
     try {
+      await this.ensureInitialized();
       const netWeight = input.loadedBoxWeight - input.emptyBoxWeight;
       
       const result = await this.pool.query(`
@@ -140,17 +168,18 @@ class PostgresStorage {
         createdAt: row.created_at.toISOString()
       };
     } catch (err) {
-      console.error('Error updating delivery:', err);
+      console.error('❌ Error updating delivery:', err);
       throw err;
     }
   }
 
   async delete(id) {
     try {
+      await this.ensureInitialized();
       const result = await this.pool.query('DELETE FROM deliveries WHERE id = $1', [id]);
       return result.rowCount > 0;
     } catch (err) {
-      console.error('Error deleting delivery:', err);
+      console.error('❌ Error deleting delivery:', err);
       return false;
     }
   }
@@ -164,7 +193,7 @@ class PostgresStorage {
         totalDeliveries: deliveries.length
       };
     } catch (err) {
-      console.error('Error exporting data:', err);
+      console.error('❌ Error exporting data:', err);
       return { deliveries: [], exportTime: new Date().toISOString(), totalDeliveries: 0 };
     }
   }

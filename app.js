@@ -1,31 +1,33 @@
 const express = require('express');
 const path = require('path');
 
-// Try to use PostgreSQL first, fallback to file storage
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Parse JSON bodies
+app.use(express.json());
+
+// Initialize storage
 let storage;
+
 async function initStorage() {
   if (process.env.DATABASE_URL) {
     try {
       const { PostgresStorage } = require('./server/src/storage.postgres.js');
       storage = new PostgresStorage();
-      console.log('Using PostgreSQL storage');
+      await storage.initDatabase(); // Wait for database initialization
+      console.log('✅ Using PostgreSQL storage - data will persist');
       return;
     } catch (err) {
-      console.error('PostgreSQL failed, falling back to file storage:', err);
+      console.error('❌ PostgreSQL failed, falling back to file storage:', err);
     }
   }
   
   // Fallback to file storage
   const { FileStorage } = require('./server/src/storage.file.js');
   storage = new FileStorage();
-  console.log('Using file storage (data may not persist on free hosting)');
+  console.log('⚠️ Using file storage (data may not persist on free hosting)');
 }
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Parse JSON bodies
-app.use(express.json());
 
 // Global error handler
 process.on('uncaughtException', (err) => {
@@ -79,6 +81,30 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Debug endpoint to check database status
+app.get('/debug', async (req, res) => {
+  try {
+    const hasDatabase = !!process.env.DATABASE_URL;
+    const storageType = hasDatabase ? 'PostgreSQL' : 'File Storage';
+    const deliveries = await storage.list();
+    
+    res.json({
+      status: 'ok',
+      storageType,
+      hasDatabase,
+      deliveryCount: deliveries.length,
+      databaseUrl: hasDatabase ? 'Connected' : 'Not configured',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      error: err.message,
+      storageType: process.env.DATABASE_URL ? 'PostgreSQL (failed)' : 'File Storage'
+    });
+  }
+});
+
 app.get('/deliveries', async (req, res) => {
   const deliveries = await storage.list();
   res.json(deliveries);
@@ -108,7 +134,10 @@ app.post('/deliveries', async (req, res) => {
     emptyWeightsList
   } = req.body;
   
+  console.log('📝 Received delivery request:', { customerName, chickType, loadedBoxWeight, emptyBoxWeight });
+  
   if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
+    console.log('❌ Missing required fields');
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -123,9 +152,15 @@ app.post('/deliveries', async (req, res) => {
       loadedWeightsList,
       emptyWeightsList
     });
+    console.log('✅ Delivery created successfully');
     res.status(201).json(delivery);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create delivery' });
+    console.error('❌ Failed to create delivery:', err);
+    res.status(500).json({ 
+      error: 'Failed to create delivery', 
+      details: err.message,
+      hint: 'Check if database is properly connected'
+    });
   }
 });
 
