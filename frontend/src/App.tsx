@@ -82,11 +82,9 @@ export default function App() {
       if (res.ok) {
         await loadDeliveries();
         setSelectedDelivery(null);
-      } else {
-        alert("Failed to delete delivery");
       }
     } catch (err) {
-      alert("Network error while deleting");
+      console.error("Network error while deleting");
     }
   }
 
@@ -96,39 +94,28 @@ export default function App() {
         method: "DELETE",
       });
       if (res.ok) {
-        const result = await res.json();
-        alert(`Successfully deleted ${result.deletedCount} deliveries`);
         await loadDeliveries();
         setShowDeleteOptions(false);
-      } else {
-        alert("Failed to delete all deliveries");
       }
     } catch (err) {
-      alert("Network error while deleting all deliveries");
+      console.error("Network error while deleting all deliveries");
     }
   }
 
   async function deleteByDate() {
-    if (!selectedDate) {
-      alert("Please select a date");
-      return;
-    }
+    if (!selectedDate) return;
     
     try {
       const res = await fetch(`/deliveries/date/${selectedDate}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        const result = await res.json();
-        alert(`Successfully deleted ${result.deletedCount} deliveries from ${selectedDate}`);
         await loadDeliveries();
         setShowDeleteOptions(false);
         setSelectedDate("");
-      } else {
-        alert("Failed to delete deliveries by date");
       }
     } catch (err) {
-      alert("Network error while deleting by date");
+      console.error("Network error while deleting by date");
     }
   }
 
