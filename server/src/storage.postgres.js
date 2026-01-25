@@ -208,6 +208,32 @@ class PostgresStorage {
     }
   }
 
+  async deleteAll() {
+    try {
+      await this.ensureInitialized();
+      const result = await this.pool.query('DELETE FROM deliveries');
+      return { count: result.rowCount };
+    } catch (err) {
+      console.error('❌ Error deleting all deliveries:', err);
+      throw err;
+    }
+  }
+
+  async deleteByDate(date) {
+    try {
+      await this.ensureInitialized();
+      // Delete deliveries for a specific date (YYYY-MM-DD format)
+      const result = await this.pool.query(
+        'DELETE FROM deliveries WHERE DATE(created_at) = $1',
+        [date]
+      );
+      return { count: result.rowCount };
+    } catch (err) {
+      console.error('❌ Error deleting deliveries by date:', err);
+      throw err;
+    }
+  }
+
   async exportData() {
     try {
       const deliveries = await this.list();

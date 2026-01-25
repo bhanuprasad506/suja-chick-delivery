@@ -20,6 +20,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
   const [editForm, setEditForm] = useState({
     customerName: "",
     chickType: "",
@@ -85,6 +87,48 @@ export default function App() {
       }
     } catch (err) {
       alert("Network error while deleting");
+    }
+  }
+
+  async function deleteAllDeliveries() {
+    try {
+      const res = await fetch('/deliveries', {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const result = await res.json();
+        alert(`Successfully deleted ${result.deletedCount} deliveries`);
+        await loadDeliveries();
+        setShowDeleteOptions(false);
+      } else {
+        alert("Failed to delete all deliveries");
+      }
+    } catch (err) {
+      alert("Network error while deleting all deliveries");
+    }
+  }
+
+  async function deleteByDate() {
+    if (!selectedDate) {
+      alert("Please select a date");
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/deliveries/date/${selectedDate}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const result = await res.json();
+        alert(`Successfully deleted ${result.deletedCount} deliveries from ${selectedDate}`);
+        await loadDeliveries();
+        setShowDeleteOptions(false);
+        setSelectedDate("");
+      } else {
+        alert("Failed to delete deliveries by date");
+      }
+    } catch (err) {
+      alert("Network error while deleting by date");
     }
   }
 
@@ -850,7 +894,64 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
         {/* Recent Deliveries */}
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📋 Recent Deliveries</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">📋 Recent Deliveries</h2>
+            <button
+              onClick={() => setShowDeleteOptions(!showDeleteOptions)}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+            >
+              🗑️ Delete Options
+            </button>
+          </div>
+
+          {/* Delete Options Panel */}
+          {showDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ Delete Options</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Deliveries</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL delivery records.</p>
+                  <button
+                    onClick={deleteAllDeliveries}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ Delete All ({deliveries.length} items)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete by Date</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all deliveries from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ Delete Date
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">⏳</div>

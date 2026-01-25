@@ -191,6 +191,27 @@ class FileStorage {
     return false;
   }
 
+  async deleteAll() {
+    const count = this.deliveries.length;
+    this.deliveries = [];
+    this.saveData();
+    return { count };
+  }
+
+  async deleteByDate(date) {
+    const targetDate = new Date(date).toDateString();
+    const initialCount = this.deliveries.length;
+    
+    this.deliveries = this.deliveries.filter(delivery => {
+      const deliveryDate = new Date(delivery.createdAt).toDateString();
+      return deliveryDate !== targetDate;
+    });
+    
+    const deletedCount = initialCount - this.deliveries.length;
+    this.saveData();
+    return { count: deletedCount };
+  }
+
   async update(id, input) {
     const index = this.deliveries.findIndex(item => item.id === id);
     if (index === -1) return null;

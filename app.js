@@ -218,6 +218,32 @@ app.delete('/deliveries/:id', async (req, res) => {
   }
 });
 
+// Delete all deliveries
+app.delete('/deliveries', async (req, res) => {
+  try {
+    const result = await storage.deleteAll();
+    console.log(`🗑️ Deleted all deliveries: ${result.count} items`);
+    res.json({ success: true, deletedCount: result.count });
+  } catch (err) {
+    console.error('❌ Failed to delete all deliveries:', err);
+    res.status(500).json({ error: 'Failed to delete all deliveries' });
+  }
+});
+
+// Delete deliveries by date
+app.delete('/deliveries/date/:date', async (req, res) => {
+  const date = req.params.date; // Format: YYYY-MM-DD
+  
+  try {
+    const result = await storage.deleteByDate(date);
+    console.log(`🗑️ Deleted deliveries for ${date}: ${result.count} items`);
+    res.json({ success: true, deletedCount: result.count, date: date });
+  } catch (err) {
+    console.error('❌ Failed to delete deliveries by date:', err);
+    res.status(500).json({ error: 'Failed to delete deliveries by date' });
+  }
+});
+
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
