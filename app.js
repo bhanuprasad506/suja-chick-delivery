@@ -1,15 +1,31 @@
 const express = require('express');
 const path = require('path');
-const { FileStorage } = require('./server/src/storage.file.js');
+
+// Try to use PostgreSQL first, fallback to file storage
+let storage;
+async function initStorage() {
+  if (process.env.DATABASE_URL) {
+    try {
+      const { PostgresStorage } = require('./server/src/storage.postgres.js');
+      storage = new PostgresStorage();
+      console.log('Using PostgreSQL storage');
+      return;
+    } catch (err) {
+      console.error('PostgreSQL failed, falling back to file storage:', err);
+    }
+  }
+  
+  // Fallback to file storage
+  const { FileStorage } = require('./server/src/storage.file.js');
+  storage = new FileStorage();
+  console.log('Using file storage (data may not persist on free hosting)');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Parse JSON bodies
 app.use(express.json());
-
-// Use file-based storage for persistence
-const storage = new FileStorage();
 
 // Global error handler
 process.on('uncaughtException', (err) => {
@@ -175,6 +191,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
+  await initStorage();
   console.log(`Suja Chick Delivery app running on port ${PORT}`);
 });
