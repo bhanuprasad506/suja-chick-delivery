@@ -49,6 +49,30 @@ class PostgresStorage {
     }
   }
 
+  safeJsonParse(jsonString, defaultValue = []) {
+    try {
+      if (!jsonString) return defaultValue;
+      if (typeof jsonString === 'object') return jsonString; // Already parsed (JSONB)
+      if (typeof jsonString === 'string') {
+        return JSON.parse(jsonString);
+      }
+      return defaultValue;
+    } catch (err) {
+      console.error('JSON parse error:', err, 'Input:', jsonString);
+      return defaultValue;
+    }
+  }
+
+  safeJsonStringify(data) {
+    try {
+      if (typeof data === 'string') return data;
+      return JSON.stringify(data || []);
+    } catch (err) {
+      console.error('JSON stringify error:', err);
+      return '[]';
+    }
+  }
+
   async list() {
     try {
       await this.ensureInitialized();
@@ -64,8 +88,8 @@ class PostgresStorage {
         netWeight: parseFloat(row.net_weight),
         numberOfBoxes: row.number_of_boxes,
         notes: row.notes,
-        loadedWeightsList: row.loaded_weights_list || [],
-        emptyWeightsList: row.empty_weights_list || [],
+        loadedWeightsList: this.safeJsonParse(row.loaded_weights_list, []),
+        emptyWeightsList: this.safeJsonParse(row.empty_weights_list, []),
         createdAt: row.created_at.toISOString()
       }));
     } catch (err) {
@@ -99,8 +123,8 @@ class PostgresStorage {
         netWeight,
         input.numberOfBoxes,
         input.notes,
-        JSON.stringify(input.loadedWeightsList || []),
-        JSON.stringify(input.emptyWeightsList || [])
+        this.safeJsonStringify(input.loadedWeightsList || []),
+        this.safeJsonStringify(input.emptyWeightsList || [])
       ]);
 
       const row = result.rows[0];
@@ -113,8 +137,8 @@ class PostgresStorage {
         netWeight: parseFloat(row.net_weight),
         numberOfBoxes: row.number_of_boxes,
         notes: row.notes,
-        loadedWeightsList: JSON.parse(row.loaded_weights_list || '[]'),
-        emptyWeightsList: JSON.parse(row.empty_weights_list || '[]'),
+        loadedWeightsList: this.safeJsonParse(row.loaded_weights_list, []),
+        emptyWeightsList: this.safeJsonParse(row.empty_weights_list, []),
         createdAt: row.created_at.toISOString()
       };
       
@@ -146,8 +170,8 @@ class PostgresStorage {
         netWeight,
         input.numberOfBoxes,
         input.notes,
-        JSON.stringify(input.loadedWeightsList || []),
-        JSON.stringify(input.emptyWeightsList || []),
+        this.safeJsonStringify(input.loadedWeightsList || []),
+        this.safeJsonStringify(input.emptyWeightsList || []),
         id
       ]);
 
@@ -163,8 +187,8 @@ class PostgresStorage {
         netWeight: parseFloat(row.net_weight),
         numberOfBoxes: row.number_of_boxes,
         notes: row.notes,
-        loadedWeightsList: JSON.parse(row.loaded_weights_list || '[]'),
-        emptyWeightsList: JSON.parse(row.empty_weights_list || '[]'),
+        loadedWeightsList: this.safeJsonParse(row.loaded_weights_list, []),
+        emptyWeightsList: this.safeJsonParse(row.empty_weights_list, []),
         createdAt: row.created_at.toISOString()
       };
     } catch (err) {
