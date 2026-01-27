@@ -30,6 +30,7 @@ type Order = {
 };
 
 export default function App() {
+  const { t } = useLanguage();
   const [health, setHealth] = useState<string | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -469,17 +470,17 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">🔐</div>
-            <h1 className="text-3xl font-bold text-red-800">Admin Access Required</h1>
-            <p className="text-red-600">Suja Chick Delivery - Admin Portal</p>
+            <h1 className="text-3xl font-bold text-red-800">{t('admin.login')}</h1>
+            <p className="text-red-600">Suja Chick Delivery - {t('admin.title')}</p>
           </div>
 
           {/* Admin Login Form */}
           <form onSubmit={handleAdminLogin} className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-red-500">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">🛡️ Admin Login</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">🛡️ {t('admin.verify')}</h2>
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                📱 Admin Mobile Number
+                📱 {t('admin.mobile')}
               </label>
               <input
                 type="tel"
@@ -493,7 +494,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                🔒 Password
+                🔒 {t('admin.password')}
               </label>
               <input
                 type="password"
@@ -509,7 +510,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               type="submit"
               className="w-full py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold text-lg"
             >
-              🚪 Verify & Access Admin Portal
+              🚪 {t('admin.verify')}
             </button>
 
             <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
@@ -523,7 +524,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 href="/" 
                 className="text-blue-600 hover:text-blue-800 text-sm"
               >
-                ← Back to Customer Portal
+                ← {t('btn.back')} {t('customer.title')}
               </a>
             </div>
 
@@ -944,7 +945,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </div>
           <div className="text-6xl mb-3">🐣</div>
           <h1 className="text-4xl font-bold text-orange-800 mb-2">Suja Chick Delivery</h1>
-          <p className="text-orange-600">Admin Portal - Delivery Management</p>
+          <p className="text-orange-600">{t('admin.title')} - {t('admin.newDelivery')}</p>
           <div className="mt-2 flex justify-center items-center gap-4">
             <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
               API: {health ?? "checking..."}
@@ -953,24 +954,24 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               href="/" 
               className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
             >
-              👥 Customer Portal
+              👥 {t('customer.title')}
             </a>
             <button
               onClick={handleAdminLogout}
               className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200 transition-colors"
             >
-              🚪 Logout
+              🚪 {t('btn.logout')}
             </button>
           </div>
         </div>
 
         {/* Delivery Form */}
         <form className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-orange-500" onSubmit={submit}>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📝 New Delivery</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">📝 {t('admin.newDelivery')}</h2>
           
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">👤 Customer Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">👤 {t('form.customerName')}</label>
               <input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -981,7 +982,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">🐔 Chick Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">🐔 {t('form.chickType')}</label>
               <select
                 value={chickType}
                 onChange={(e) => setChickType(e.target.value)}
@@ -996,7 +997,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <label className="block text-sm font-medium text-blue-800 mb-2">📈 Loaded Box Weight (kg)</label>
+                <label className="block text-sm font-medium text-blue-800 mb-2">📈 {t('form.loadedWeight')}</label>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="number"
@@ -1015,7 +1016,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                   >
-                    ➕ Add
+                    ➕ {t('form.addWeight')}
                   </button>
                 </div>
                 
@@ -1050,7 +1051,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
 
               <div className="bg-red-50 p-4 rounded-lg">
-                <label className="block text-sm font-medium text-red-800 mb-2">📉 Empty Box Weight (kg)</label>
+                <label className="block text-sm font-medium text-red-800 mb-2">📉 {t('form.emptyWeight')}</label>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="number"
@@ -1069,7 +1070,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
                   >
-                    ➕ Add
+                    ➕ {t('form.addWeight')}
                   </button>
                 </div>
                 
@@ -1105,7 +1106,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">📦 Number of Boxes (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">📦 {t('form.numberOfBoxes')}</label>
               <input
                 type="number"
                 min={1}
@@ -1117,7 +1118,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">📋 Notes</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">📋 {t('form.notes')}</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -1130,7 +1131,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm text-green-800">Net Weight:</p>
+                  <p className="text-sm text-green-800">{t('delivery.netWeight')}:</p>
                   <p className="text-3xl font-bold text-green-900">{totalNet().toFixed(2)} kg</p>
                   <p className="text-xs text-gray-600 mt-1">
                     (Total loaded - Total empty)
@@ -1145,7 +1146,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     type="submit"
                     className="mt-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-bold text-lg"
                   >
-                    ✅ Submit Delivery
+                    ✅ {t('form.submitDelivery')}
                   </button>
                 </div>
               </div>
@@ -1162,7 +1163,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              📋 Deliveries ({deliveries.length})
+              📋 {t('admin.recentDeliveries')} ({deliveries.length})
             </button>
             <button
               onClick={() => setActiveTab('orders')}
@@ -1170,7 +1171,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 activeTab === 'orders' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              🛒 Customer Orders ({orders.length})
+              🛒 {t('admin.customerOrders')} ({orders.length})
             </button>
           </div>
         </div>
@@ -1179,36 +1180,36 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         {activeTab === 'deliveries' && (
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">📋 Recent Deliveries</h2>
+            <h2 className="text-xl font-bold text-gray-800">📋 {t('admin.recentDeliveries')}</h2>
             <button
               onClick={() => setShowDeleteOptions(!showDeleteOptions)}
               className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
             >
-              🗑️ Delete Options
+              🗑️ {t('admin.deleteOptions')}
             </button>
           </div>
 
           {/* Delete Options Panel */}
           {showDeleteOptions && (
             <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-              <h3 className="font-semibold text-red-800 mb-3">⚠️ Delete Options</h3>
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Delete All */}
                 <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">Delete All Deliveries</h4>
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteAll')}</h4>
                   <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL delivery records.</p>
                   <button
                     onClick={deleteAllDeliveries}
                     className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
                   >
-                    🗑️ Delete All ({deliveries.length} items)
+                    🗑️ {t('admin.deleteAll')} ({deliveries.length} items)
                   </button>
                 </div>
 
                 {/* Delete by Date */}
                 <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">Delete by Date</h4>
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
                   <p className="text-sm text-gray-600 mb-3">Delete all deliveries from a specific date.</p>
                   <input
                     type="date"
@@ -1221,7 +1222,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     disabled={!selectedDate}
                     className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
                   >
-                    🗑️ Delete Date
+                    🗑️ {t('admin.deleteByDate')}
                   </button>
                 </div>
               </div>
@@ -1231,7 +1232,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                   onClick={() => setShowDeleteOptions(false)}
                   className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
                 >
-                  ❌ Cancel
+                  ❌ {t('btn.cancel')}
                 </button>
               </div>
             </div>
@@ -1298,15 +1299,15 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             <div className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-300">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500 text-center">
-                  <p className="text-sm text-gray-600 mb-2">📈 Total Loaded Weight</p>
+                  <p className="text-sm text-gray-600 mb-2">📈 {t('summary.totalLoaded')}</p>
                   <p className="text-3xl font-bold text-blue-600">{deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0).toFixed(2)} kg</p>
                 </div>
                 <div className="bg-white p-4 rounded-lg border-l-4 border-red-500 text-center">
-                  <p className="text-sm text-gray-600 mb-2">📉 Total Empty Weight</p>
+                  <p className="text-sm text-gray-600 mb-2">📉 {t('summary.totalEmpty')}</p>
                   <p className="text-3xl font-bold text-red-600">{deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0).toFixed(2)} kg</p>
                 </div>
                 <div className="bg-gradient-to-br from-orange-100 to-yellow-100 p-4 rounded-lg border-l-4 border-orange-600 text-center">
-                  <p className="text-sm text-gray-700 font-semibold mb-2">🎯 Grand Total</p>
+                  <p className="text-sm text-gray-700 font-semibold mb-2">🎯 {t('summary.grandTotal')}</p>
                   <p className="text-3xl font-bold text-orange-700">{(deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0) + deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0)).toFixed(2)} kg</p>
                 </div>
               </div>

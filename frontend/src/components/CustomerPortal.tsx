@@ -46,6 +46,7 @@ export default function CustomerPortal() {
   
   // Track if form was submitted to show success message
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     loadDeliveries();
@@ -178,6 +179,8 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
     }
   }
 
+  const { t } = useLanguage();
+
   if (showOrderForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
@@ -185,7 +188,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           {/* Header */}
           <div className="text-center mb-6">
             <div className="text-4xl mb-2">🛒</div>
-            <h1 className="text-3xl font-bold text-green-800">Place New Order</h1>
+            <h1 className="text-3xl font-bold text-green-800">{t('customer.placeOrder')}</h1>
             <p className="text-green-600">Suja Chick Delivery</p>
           </div>
 
@@ -194,16 +197,16 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             onClick={() => setShowOrderForm(false)}
             className="mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >
-            ← Back to Portal
+            ← {t('btn.back')}
           </button>
 
           {/* Order Form */}
           <form onSubmit={submitOrder} className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">📝 Order Details</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">📝 {t('customer.orderForm')}</h2>
             
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">🐔 Chick Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">🐔 {t('form.chickType')}</label>
                 <select
                   value={orderForm.chickType}
                   onChange={(e) => setOrderForm({...orderForm, chickType: e.target.value})}
@@ -218,7 +221,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">📦 Number of Boxes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">📦 {t('form.numberOfBoxes')}</label>
                 <input
                   type="number"
                   step="0.5"
@@ -232,7 +235,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Your Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">👤 {t('customer.yourName')}</label>
                 <input
                   type="text"
                   value={orderForm.customerName}
@@ -244,7 +247,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">📱 Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">📱 {t('customer.phoneNumber')}</label>
                 <input
                   type="tel"
                   value={orderForm.customerPhone}
@@ -256,7 +259,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">📋 Special Requirements / Notes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">📋 {t('customer.specialRequirements')}</label>
                 <textarea
                   value={orderForm.notes}
                   onChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
@@ -271,14 +274,14 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                   type="submit"
                   className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold text-lg"
                 >
-                  🛒 Place Order
+                  🛒 {t('customer.placeOrderBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowOrderForm(false)}
                   className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-bold"
                 >
-                  ❌ Cancel
+                  ❌ {t('btn.cancel')}
                 </button>
               </div>
             </div>
@@ -293,26 +296,40 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="absolute top-4 right-4">
-            <LanguageSwitcher />
-          </div>
           <div className="text-6xl mb-3">🐣</div>
           <h1 className="text-4xl font-bold text-green-800 mb-2">Suja Chick Delivery</h1>
-          <p className="text-green-600">Customer Portal - Find Your Deliveries</p>
-          <div className="mt-2 flex justify-center items-center gap-4">
-            <a 
-              href="/admin" 
-              className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm hover:bg-orange-200 transition-colors"
-              title="Admin access requires password"
-            >
-              🔐 Admin Portal (Password Required)
-            </a>
-          </div>
+          <p className="text-green-600">{t('customer.title')}</p>
         </div>
 
-        {/* Search Bar */}
+        {/* Action Buttons - Place New Order and Admin Portal */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <button
+            onClick={() => setShowOrderForm(true)}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-2">🛒</div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">{t('customer.placeOrder')}</h2>
+              <p className="text-gray-600">Order fresh chicks for delivery</p>
+            </div>
+          </button>
+
+          <a 
+            href="/admin" 
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow flex flex-col justify-center items-center"
+            title="Admin access requires password"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-2">🔐</div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">{t('customer.adminPortal')}</h2>
+              <p className="text-gray-600">Password required</p>
+            </div>
+          </a>
+        </div>
+
+        {/* Search Bar - Below Action Buttons */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6 border-l-4 border-blue-500">
-          <h2 className="text-lg font-bold text-gray-800 mb-3">🔍 Find Your Deliveries</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-3">🔍 {t('customer.findDeliveries')}</h2>
           <input
             type="text"
             placeholder="Search by customer name, phone, or any detail..."
@@ -325,31 +342,6 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <button
-            onClick={() => setShowOrderForm(true)}
-            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-2">🛒</div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Place New Order</h2>
-              <p className="text-gray-600">Order fresh chicks for delivery</p>
-            </div>
-          </button>
-
-          <button
-            onClick={loadDeliveries}
-            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-2">📋</div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Refresh</h2>
-              <p className="text-gray-600">Refresh all delivery records</p>
-            </div>
-          </button>
-        </div>
-
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6 border-l-4 border-green-500">
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
@@ -359,7 +351,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 activeTab === 'all' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              📦 All Deliveries ({deliveries.length})
+              📦 {t('customer.allDeliveries')} ({deliveries.length})
             </button>
             <button
               onClick={() => setActiveTab('done')}
@@ -367,15 +359,20 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 activeTab === 'done' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              ✅ Done Deliveries ({completedOrders.length})
+              ✅ {t('customer.doneDeliveries')} ({completedOrders.length})
             </button>
           </div>
+        </div>
+
+        {/* Language Switcher - Below Tabs */}
+        <div className="flex justify-center mb-6">
+          <LanguageSwitcher />
         </div>
 
         {/* All Deliveries */}
         {activeTab === 'all' && (
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📋 All Deliveries ({deliveries.length} total)</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">📋 {t('customer.allDeliveries')} ({deliveries.length} {t('summary.totalDeliveries')})</h2>
           
           {loading ? (
             <div className="text-center py-8">
@@ -397,7 +394,10 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                 <div 
                   key={d.id} 
                   className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
-                  onClick={() => setSelectedDelivery(d)}
+                  onClick={() => {
+                    setSelectedDelivery(d);
+                    setShowDetailModal(true);
+                  }}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -407,7 +407,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-green-600">{d.netWeight.toFixed(2)} kg</p>
-                      <p className="text-sm text-gray-500">Net Weight</p>
+                      <p className="text-sm text-gray-500">{t('delivery.netWeight')}</p>
                       <p className="text-xs text-gray-400">
                         {d.numberOfBoxes ? `${d.numberOfBoxes} boxes` : 'Boxes not specified'}
                       </p>
@@ -417,7 +417,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     <p className="text-sm text-gray-600 mt-2 italic">📝 {d.notes}</p>
                   )}
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-sm text-green-600 font-medium">👆 Tap for details & download</span>
+                    <span className="text-sm text-green-600 font-medium">👆 {t('delivery.tapForDetails')}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -436,7 +436,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           ) : (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">📦</div>
-              <p className="text-gray-500">No deliveries found.</p>
+              <p className="text-gray-500">{t('msg.noDeliveries')}</p>
               <p className="text-sm text-gray-400 mt-2">
                 Contact admin to add delivery records.
               </p>
@@ -448,7 +448,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         {/* Done Deliveries from Orders */}
         {activeTab === 'done' && (
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">✅ Done Deliveries ({completedOrders.length} total)</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">✅ {t('customer.doneDeliveries')} ({completedOrders.length} {t('summary.totalDeliveries')})</h2>
           
           {completedOrders.length > 0 ? (
             <div className="space-y-3">
@@ -477,7 +477,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                       <p className="text-2xl font-bold text-blue-600">{order.quantity}</p>
                       <p className="text-sm text-gray-500">Boxes</p>
                       <span className="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                        ✅ Delivered
+                        ✅ {t('order.delivered')}
                       </span>
                     </div>
                   </div>
@@ -500,6 +500,163 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
           )}
         </div>
+        )}
+
+        {/* Delivery Details Modal */}
+        {selectedDelivery && showDetailModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
+              <div className="sticky top-0 bg-green-600 text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">📋 {t('delivery.details')}</h2>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-2xl hover:text-gray-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">👤 {t('form.customerName')}</p>
+                    <p className="font-bold text-lg">{selectedDelivery.customerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">🐔 {t('form.chickType')}</p>
+                    <p className="font-bold text-lg">{selectedDelivery.chickType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">📦 {t('form.numberOfBoxes')}</p>
+                    <p className="font-bold text-lg">{selectedDelivery.numberOfBoxes || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">📅 Date</p>
+                    <p className="font-bold text-lg">{formatDateWithOrdinal(selectedDelivery.createdAt)}</p>
+                  </div>
+                </div>
+
+                {/* Weight Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-800 mb-3">📈 {t('form.loadedWeight')}</h3>
+                    {selectedDelivery.loadedWeightsList && selectedDelivery.loadedWeightsList.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedDelivery.loadedWeightsList.map((weight, index) => (
+                          <div key={index} className="flex justify-between bg-white p-2 rounded">
+                            <span>Measurement {index + 1}:</span>
+                            <span className="font-semibold">{weight.toFixed(2)} kg</span>
+                          </div>
+                        ))}
+                        <div className="border-t pt-2 mt-2">
+                          <div className="flex justify-between font-bold text-blue-800">
+                            <span>Total:</span>
+                            <span>{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white p-2 rounded">
+                        <span className="font-semibold">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-red-800 mb-3">📉 {t('form.emptyWeight')}</h3>
+                    {selectedDelivery.emptyWeightsList && selectedDelivery.emptyWeightsList.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedDelivery.emptyWeightsList.map((weight, index) => (
+                          <div key={index} className="flex justify-between bg-white p-2 rounded">
+                            <span>Measurement {index + 1}:</span>
+                            <span className="font-semibold">{weight.toFixed(2)} kg</span>
+                          </div>
+                        ))}
+                        <div className="border-t pt-2 mt-2">
+                          <div className="flex justify-between font-bold text-red-800">
+                            <span>Total:</span>
+                            <span>{selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white p-2 rounded">
+                        <span className="font-semibold">{selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 mb-3">📊 {t('delivery.details')}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">{t('summary.totalLoaded')}</p>
+                      <p className="font-semibold text-lg text-blue-700">
+                        {selectedDelivery.loadedBoxWeight.toFixed(2)} kg
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">{t('summary.totalEmpty')}</p>
+                      <p className="font-semibold text-lg text-red-700">
+                        {selectedDelivery.emptyBoxWeight.toFixed(2)} kg
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-white rounded border-2 border-green-300">
+                    <p className="text-center text-green-800">
+                      <span className="font-bold">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span> (loaded) - 
+                      <span className="font-bold"> {selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span> (empty) = 
+                      <span className="font-bold text-lg"> {selectedDelivery.netWeight.toFixed(2)} kg</span> (net)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {selectedDelivery.notes && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-yellow-800 mb-2">📋 {t('form.notes')}</h3>
+                    <p className="text-gray-700">{selectedDelivery.notes}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <button
+                    onClick={() => {
+                      const text = generateDetailedShareText(selectedDelivery);
+                      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                  >
+                    📱 {t('delivery.shareWhatsApp')}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const text = generateDetailedShareText(selectedDelivery);
+                        await navigator.clipboard.writeText(text);
+                        alert(t('msg.copied'));
+                      } catch (err) {
+                        alert('Copy failed');
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                  >
+                    📋 {t('delivery.copyDetails')}
+                  </button>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+                  >
+                    ❌ {t('btn.close')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
