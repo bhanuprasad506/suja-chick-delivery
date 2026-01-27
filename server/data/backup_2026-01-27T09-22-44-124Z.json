@@ -1,0 +1,38 @@
+{
+  "deliveries": [
+    {
+      "id": 6,
+      "customerName": "buny ",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 123,
+      "emptyBoxWeight": 23,
+      "numberOfBoxes": 1,
+      "netWeight": 100,
+      "loadedWeightsList": [
+        123
+      ],
+      "emptyWeightsList": [
+        23
+      ],
+      "createdAt": "2026-01-27T08:47:19.779Z"
+    },
+    {
+      "id": 7,
+      "customerName": "nahhwe",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 234,
+      "emptyBoxWeight": 34,
+      "numberOfBoxes": 1,
+      "netWeight": 200,
+      "loadedWeightsList": [
+        234
+      ],
+      "emptyWeightsList": [
+        34
+      ],
+      "createdAt": "2026-01-27T08:47:32.839Z"
+    }
+  ],
+  "idCounter": 8,
+  "backupTime": "2026-01-27T09:22:44.125Z"
+}

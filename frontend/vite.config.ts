@@ -51,9 +51,13 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
+    host: true,
     proxy: {
-      '/deliveries': 'http://localhost:4000',
-      '/health': 'http://localhost:4000',
+      '/deliveries': 'http://127.0.0.1:4000',
+      '/orders': 'http://127.0.0.1:4000',
+      '/health': 'http://127.0.0.1:4000',
+      '/debug': 'http://127.0.0.1:4000',
+      '/export': 'http://127.0.0.1:4000',
     },
   },
 });

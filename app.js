@@ -1,11 +1,22 @@
 const express = require('express');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Parse JSON bodies
 app.use(express.json());
+
+// Initialize Twilio for SMS (optional - only if credentials are provided)
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+  const twilio = require('twilio');
+  twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  console.log('✅ Twilio SMS service initialized');
+} else {
+  console.log('⚠️ Twilio credentials not configured - SMS notifications disabled');
+}
 
 // Initialize storage
 let storage;
@@ -241,6 +252,157 @@ app.delete('/deliveries/date/:date', async (req, res) => {
   } catch (err) {
     console.error('❌ Failed to delete deliveries by date:', err);
     res.status(500).json({ error: 'Failed to delete deliveries by date' });
+  }
+});
+
+// Helper function to send SMS notification
+async function sendSMSNotification(phoneNumber, message) {
+  if (!twilioClient) {
+    console.log('⚠️ SMS service not configured, skipping notification');
+    return false;
+  }
+
+  try {
+    // Format phone number to international format if needed
+    let formattedPhone = phoneNumber;
+    if (!phoneNumber.startsWith('+')) {
+      // Assume Indian number if no country code
+      formattedPhone = '+91' + phoneNumber.replace(/\D/g, '').slice(-10);
+    }
+
+    const result = await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: formattedPhone
+    });
+
+    console.log('✅ SMS sent successfully:', result.sid);
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to send SMS:', err.message);
+    return false;
+  }
+}
+
+// Order Management Endpoints
+let orders = []; // Simple in-memory storage for orders (in production, use database)
+
+// Get all orders (admin only)
+app.get('/orders', async (req, res) => {
+  res.json(orders);
+});
+
+// Create new order (customer)
+app.post('/orders', async (req, res) => {
+  const { 
+    chickType, 
+    quantity, 
+    customerName, 
+    customerPhone, 
+    notes 
+  } = req.body;
+  
+  if (!chickType || !quantity || !customerName || !customerPhone) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    const order = {
+      id: Date.now(), // Simple ID generation
+      chickType,
+      quantity: Number(quantity),
+      customerName,
+      customerPhone,
+      notes: notes || '',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    orders.push(order);
+    console.log('📝 New order created:', order);
+    res.status(201).json(order);
+  } catch (err) {
+    console.error('❌ Failed to create order:', err);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+// Update order status (admin only)
+app.put('/orders/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { status, notes } = req.body;
+  
+  try {
+    const orderIndex = orders.findIndex(o => o.id === id);
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const updatedOrder = {
+      ...orders[orderIndex],
+      status: status || orders[orderIndex].status,
+      notes: notes !== undefined ? notes : orders[orderIndex].notes,
+      updatedAt: new Date().toISOString()
+    };
+    
+    orders[orderIndex] = updatedOrder;
+    
+    // If order is marked as delivered, create a corresponding delivery record and send SMS
+    if (updatedOrder.status === 'delivered') {
+      try {
+        const delivery = await storage.create({
+          customerName: updatedOrder.customerName,
+          chickType: updatedOrder.chickType,
+          loadedBoxWeight: updatedOrder.quantity * 10, // Estimate: 10kg per box
+          emptyBoxWeight: updatedOrder.quantity * 2,   // Estimate: 2kg per box
+          numberOfBoxes: updatedOrder.quantity,
+          notes: `Order #${updatedOrder.id} - ${updatedOrder.notes || 'Delivered order'}`,
+          loadedWeightsList: [],
+          emptyWeightsList: []
+        });
+        console.log('✅ Delivery record created from order:', delivery);
+
+        // Send SMS notification to customer
+        const smsMessage = `🐣 Suja Chick Delivery\n\nHi ${updatedOrder.customerName},\n\nYour order has been delivered!\n\n📦 Order Details:\n• Type: ${updatedOrder.chickType}\n• Quantity: ${updatedOrder.quantity} boxes\n• Status: Delivered\n\nThank you for your order!\n\n📞 Contact us for any queries.`;
+        
+        const smsSent = await sendSMSNotification(updatedOrder.customerPhone, smsMessage);
+        
+        if (smsSent) {
+          console.log('✅ SMS notification sent to:', updatedOrder.customerPhone);
+        } else {
+          console.log('⚠️ SMS notification could not be sent (service may not be configured)');
+        }
+      } catch (err) {
+        console.error('⚠️ Failed to create delivery from order:', err);
+        // Don't fail the order update if delivery creation fails
+      }
+    }
+    
+    console.log('📝 Order updated:', updatedOrder);
+    res.json(updatedOrder);
+  } catch (err) {
+    console.error('❌ Failed to update order:', err);
+    res.status(500).json({ error: 'Failed to update order' });
+  }
+});
+
+// Delete order (admin only)
+app.delete('/orders/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  try {
+    const orderIndex = orders.findIndex(o => o.id === id);
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    orders.splice(orderIndex, 1);
+    console.log('🗑️ Order deleted:', id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Failed to delete order:', err);
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 

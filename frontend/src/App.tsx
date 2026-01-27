@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "./contexts/LanguageContext";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 
 type Delivery = {
   id: number;
@@ -14,14 +16,46 @@ type Delivery = {
   emptyWeightsList?: number[];
 };
 
+type Order = {
+  id: number;
+  chickType: string;
+  quantity: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  notes: string;
+  status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function App() {
   const [health, setHealth] = useState<string | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
+  const [activeTab, setActiveTab] = useState<'deliveries' | 'orders'>('deliveries');
+  const [showOrderDeleteOptions, setShowOrderDeleteOptions] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminMobile, setAdminMobile] = useState("");
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+
+  // Authorized admin mobile numbers
+  const authorizedAdmins = [
+    "8519984203",
+    "9966345400", 
+    "9848214213",
+    "9391275208",
+    "9542961335",
+    "9550784835"
+  ];
+
+  const adminPassword = "suja123";
   const [editForm, setEditForm] = useState({
     customerName: "",
     chickType: "",
@@ -47,7 +81,67 @@ export default function App() {
   useEffect(() => {
     fetchHealth();
     loadDeliveries();
+    loadOrders();
+    
+    // Check URL parameter for force logout
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout') === 'true') {
+      localStorage.removeItem('suja_admin_auth');
+      localStorage.removeItem('suja_admin_expiry');
+      setIsAdminAuthenticated(false);
+      // Remove the parameter from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Check if admin is already authenticated and session is valid
+      const adminAuth = localStorage.getItem('suja_admin_auth');
+      const adminExpiry = localStorage.getItem('suja_admin_expiry');
+      
+      if (adminAuth === 'authenticated' && adminExpiry) {
+        const expiryTime = parseInt(adminExpiry);
+        const currentTime = Date.now();
+        
+        if (currentTime < expiryTime) {
+          // Session is still valid
+          setIsAdminAuthenticated(true);
+        } else {
+          // Session expired, clear it
+          localStorage.removeItem('suja_admin_auth');
+          localStorage.removeItem('suja_admin_expiry');
+          setIsAdminAuthenticated(false);
+        }
+      }
+    }
   }, []);
+
+  function handleAdminLogin(e: React.FormEvent) {
+    e.preventDefault();
+    
+    // Check if mobile number is in authorized list AND password is correct
+    if (authorizedAdmins.includes(adminMobile) && adminPasswordInput === adminPassword) {
+      setIsAdminAuthenticated(true);
+      
+      // Set session to expire in 1 week (7 days)
+      const oneWeekFromNow = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      
+      localStorage.setItem('suja_admin_auth', 'authenticated');
+      localStorage.setItem('suja_admin_expiry', oneWeekFromNow.toString());
+      setAdminMobile('');
+      setAdminPasswordInput('');
+    } else if (!authorizedAdmins.includes(adminMobile)) {
+      alert('Unauthorized mobile number! Please contact administrator.');
+      setAdminMobile('');
+      setAdminPasswordInput('');
+    } else if (adminPasswordInput !== adminPassword) {
+      alert('Incorrect password!');
+      setAdminPasswordInput('');
+    }
+  }
+
+  function handleAdminLogout() {
+    setIsAdminAuthenticated(false);
+    localStorage.removeItem('suja_admin_auth');
+    localStorage.removeItem('suja_admin_expiry');
+  }
 
   async function fetchHealth() {
     try {
@@ -72,6 +166,89 @@ export default function App() {
       setDeliveries([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const res = await fetch("/orders");
+      if (res.ok) {
+        setOrders(await res.json());
+      } else {
+        setOrders([]);
+      }
+    } catch (e) {
+      setOrders([]);
+    }
+  }
+
+  async function updateOrderStatus(orderId: number, status: string) {
+    try {
+      const res = await fetch(`/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        await loadOrders();
+        // If marked as delivered, also refresh deliveries to show the new delivery record
+        if (status === 'delivered') {
+          await loadDeliveries();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update order status');
+    }
+  }
+
+  async function deleteOrder(orderId: number) {
+    try {
+      const res = await fetch(`/orders/${orderId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await loadOrders();
+      }
+    } catch (err) {
+      console.error('Failed to delete order');
+    }
+  }
+
+  async function deleteAllOrders() {
+    try {
+      // Delete all orders one by one since we don't have a bulk delete endpoint
+      for (const order of orders) {
+        await fetch(`/orders/${order.id}`, {
+          method: 'DELETE'
+        });
+      }
+      await loadOrders();
+      setShowOrderDeleteOptions(false);
+    } catch (err) {
+      console.error('Failed to delete all orders');
+    }
+  }
+
+  async function deleteOrdersByDate() {
+    if (!selectedDate) return;
+    
+    try {
+      // Filter orders by date and delete them
+      const ordersToDelete = orders.filter(order => 
+        order.createdAt.startsWith(selectedDate)
+      );
+      
+      for (const order of ordersToDelete) {
+        await fetch(`/orders/${order.id}`, {
+          method: 'DELETE'
+        });
+      }
+      
+      await loadOrders();
+      setShowOrderDeleteOptions(false);
+      setSelectedDate("");
+    } catch (err) {
+      console.error('Failed to delete orders by date');
     }
   }
   async function deleteDelivery(id: number) {
@@ -211,6 +388,7 @@ export default function App() {
         setTempLoadedWeight("");
         setTempEmptyWeight("");
         setNotes("");
+        setPhoto(null);
         await loadDeliveries();
       } else {
         const text = await res.text();
@@ -279,6 +457,87 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 ---
 *Suja Chick Delivery Service* 🚚`;
   }
+
+  // Show admin login screen if not authenticated
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
+        <div className="max-w-md w-full">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">🔐</div>
+            <h1 className="text-3xl font-bold text-red-800">Admin Access Required</h1>
+            <p className="text-red-600">Suja Chick Delivery - Admin Portal</p>
+          </div>
+
+          {/* Admin Login Form */}
+          <form onSubmit={handleAdminLogin} className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-red-500">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">🛡️ Admin Login</h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                📱 Admin Mobile Number
+              </label>
+              <input
+                type="tel"
+                value={adminMobile}
+                onChange={(e) => setAdminMobile(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-3 focus:border-red-500 focus:outline-none text-lg"
+                placeholder="Enter your registered mobile number"
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🔒 Password
+              </label>
+              <input
+                type="password"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-3 focus:border-red-500 focus:outline-none text-lg"
+                placeholder="Enter admin password"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold text-lg"
+            >
+              🚪 Verify & Access Admin Portal
+            </button>
+
+            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-xs text-green-700">
+                ✅ After verification, you'll have access for 1 week without re-entering your mobile number.
+              </p>
+            </div>
+
+            <div className="mt-6 text-center">
+              <a 
+                href="/" 
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                ← Back to Customer Portal
+              </a>
+            </div>
+
+            <div className="mt-4 bg-gray-50 p-3 rounded text-center">
+              <p className="text-xs text-gray-600">
+                🔒 This area is restricted to authorized administrators only
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedDelivery) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 p-4">
@@ -680,13 +939,28 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
       <div className="max-w-2xl mx-auto">
         {/* Header with Logo */}
         <div className="text-center mb-6">
+          <div className="absolute top-4 right-4">
+            <LanguageSwitcher />
+          </div>
           <div className="text-6xl mb-3">🐣</div>
           <h1 className="text-4xl font-bold text-orange-800 mb-2">Suja Chick Delivery</h1>
-          <p className="text-orange-600">Professional Delivery Management</p>
-          <div className="mt-2 text-sm">
-            <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full">
+          <p className="text-orange-600">Admin Portal - Delivery Management</p>
+          <div className="mt-2 flex justify-center items-center gap-4">
+            <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
               API: {health ?? "checking..."}
             </span>
+            <a 
+              href="/" 
+              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
+            >
+              👥 Customer Portal
+            </a>
+            <button
+              onClick={handleAdminLogout}
+              className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200 transition-colors"
+            >
+              🚪 Logout
+            </button>
           </div>
         </div>
 
@@ -879,7 +1153,30 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </div>
         </form>
 
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 mb-6">
+          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4">
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              📋 Deliveries ({deliveries.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'orders' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              🛒 Customer Orders ({orders.length})
+            </button>
+          </div>
+        </div>
+
         {/* Recent Deliveries */}
+        {activeTab === 'deliveries' && (
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">📋 Recent Deliveries</h2>
@@ -995,7 +1292,287 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               <p className="text-gray-500">No deliveries yet. Add your first delivery above!</p>
             </div>
           )}
+
+          {/* Total Weight Summary */}
+          {deliveries.length > 0 && (
+            <div className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500 text-center">
+                  <p className="text-sm text-gray-600 mb-2">📈 Total Loaded Weight</p>
+                  <p className="text-3xl font-bold text-blue-600">{deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0).toFixed(2)} kg</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border-l-4 border-red-500 text-center">
+                  <p className="text-sm text-gray-600 mb-2">📉 Total Empty Weight</p>
+                  <p className="text-3xl font-bold text-red-600">{deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0).toFixed(2)} kg</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-100 to-yellow-100 p-4 rounded-lg border-l-4 border-orange-600 text-center">
+                  <p className="text-sm text-gray-700 font-semibold mb-2">🎯 Grand Total</p>
+                  <p className="text-3xl font-bold text-orange-700">{(deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0) + deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0)).toFixed(2)} kg</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+        )}
+
+        {/* Customer Orders Management */}
+        {activeTab === 'orders' && (
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">🛒 Customer Orders</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowOrderDeleteOptions(!showOrderDeleteOptions)}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+              >
+                🗑️ Delete Options
+              </button>
+              <button
+                onClick={loadOrders}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+              >
+                🔄 Refresh Orders
+              </button>
+            </div>
+          </div>
+
+          {/* Order Delete Options Panel */}
+          {showOrderDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ Order Delete Options</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All Orders */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Orders</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL customer orders.</p>
+                  <button
+                    onClick={deleteAllOrders}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ Delete All ({orders.length} orders)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete Orders by Date</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all orders from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteOrdersByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ Delete by Date
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowOrderDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {orders.length > 0 ? (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div 
+                  key={order.id} 
+                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-800">{order.customerName}</h3>
+                      <p className="text-green-600 font-medium">{order.chickType} - {order.quantity} boxes</p>
+                      <p className="text-sm text-gray-500">📱 {order.customerPhone}</p>
+                      <p className="text-xs text-gray-400">Order #{order.id} - {formatDateWithOrdinal(order.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {order.notes && (
+                    <p className="text-sm text-gray-600 mb-3 italic">📝 {order.notes}</p>
+                  )}
+                  
+                  <div className="text-sm text-green-600 font-medium">
+                    👆 Tap for more details
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {order.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'confirmed');
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold"
+                        >
+                          ✅ Confirm Order
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'cancelled');
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-semibold"
+                        >
+                          ❌ Cancel Order
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'confirmed' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'delivered');
+                        }}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold"
+                      >
+                        🚚 Mark as Delivered
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteOrder(order.id);
+                      }}
+                      className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-semibold"
+                    >
+                      🗑️ Delete Order
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">🛒</div>
+              <p className="text-gray-500">No customer orders yet.</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Orders placed by customers will appear here for processing.
+              </p>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
+              <div className="sticky top-0 bg-green-600 text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">📋 Order Details</h2>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="text-2xl hover:text-gray-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Customer Name</p>
+                    <p className="font-bold text-lg">{selectedOrder.customerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone Number</p>
+                    <p className="font-bold text-lg">{selectedOrder.customerPhone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Chick Type</p>
+                    <p className="font-bold text-lg">{selectedOrder.chickType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Number of Boxes</p>
+                    <p className="font-bold text-lg">{selectedOrder.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Order Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                      selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                      selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Order Date</p>
+                    <p className="font-bold text-lg">{formatDateWithOrdinal(selectedOrder.createdAt)}</p>
+                  </div>
+                </div>
+
+                {selectedOrder.notes && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">📝 Notes</p>
+                    <p className="text-gray-800">{selectedOrder.notes}</p>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">💬 Send Message to Customer</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const message = `Hi ${selectedOrder.customerName}, your order for ${selectedOrder.quantity} boxes of ${selectedOrder.chickType} chicks has been ${selectedOrder.status === 'confirmed' ? 'confirmed' : selectedOrder.status === 'delivered' ? 'delivered' : 'received'}. Order ID: #${selectedOrder.id}. Thank you for choosing Suja Chick Delivery! 🐣`;
+                        const whatsappUrl = `https://wa.me/${selectedOrder.customerPhone}?text=${encodeURIComponent(message)}`;
+                        window.open(whatsappUrl, '_blank');
+                      }}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      💬 WhatsApp Message
+                    </button>
+                    <button
+                      onClick={() => {
+                        const message = `Hi ${selectedOrder.customerName}, your order for ${selectedOrder.quantity} boxes of ${selectedOrder.chickType} chicks has been ${selectedOrder.status === 'confirmed' ? 'confirmed' : selectedOrder.status === 'delivered' ? 'delivered' : 'received'}. Order ID: #${selectedOrder.id}. Thank you for choosing Suja Chick Delivery! 🐣`;
+                        const smsUrl = `sms:${selectedOrder.customerPhone}?body=${encodeURIComponent(message)}`;
+                        window.location.href = smsUrl;
+                      }}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      📱 SMS Message
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+                  >
+                    ❌ Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
