@@ -1,6 +1,12 @@
 const express = require('express');
 const path = require('path');
-require('dotenv').config();
+
+// Load environment variables if dotenv is available
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv is optional
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
