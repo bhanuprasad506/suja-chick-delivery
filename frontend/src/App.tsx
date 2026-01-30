@@ -45,6 +45,15 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminMobile, setAdminMobile] = useState("");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [enteringDeliveryFromOrder, setEnteringDeliveryFromOrder] = useState(false);
+  const [orderDeliveryForm, setOrderDeliveryForm] = useState({
+    loadedWeightsList: [] as number[],
+    emptyWeightsList: [] as number[],
+    tempLoadedWeight: "" as number | "",
+    tempEmptyWeight: "" as number | "",
+    numberOfBoxes: "" as number | "",
+    notes: "",
+  });
 
   // Authorized admin mobile numbers
   const authorizedAdmins = [
@@ -212,6 +221,52 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to delete order');
+    }
+  }
+
+  async function submitDeliveryFromOrder() {
+    if (!selectedOrder) return;
+
+    const sum = (arr: number[], fallback: number | "") => (arr && arr.length > 0 ? arr.reduce((s, v) => s + v, 0) : Number(fallback) || 0);
+    const payload = {
+      customerName: selectedOrder.customerName,
+      chickType: selectedOrder.chickType,
+      loadedBoxWeight: sum(orderDeliveryForm.loadedWeightsList, 0),
+      emptyBoxWeight: sum(orderDeliveryForm.emptyWeightsList, 0),
+      numberOfBoxes: typeof orderDeliveryForm.numberOfBoxes === "number" ? orderDeliveryForm.numberOfBoxes : undefined,
+      notes: orderDeliveryForm.notes || undefined,
+      loadedWeightsList: orderDeliveryForm.loadedWeightsList,
+      emptyWeightsList: orderDeliveryForm.emptyWeightsList,
+    };
+
+    try {
+      const res = await fetch("/deliveries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        // Mark order as delivered
+        await updateOrderStatus(selectedOrder.id, 'delivered');
+        // Reset form
+        setOrderDeliveryForm({
+          loadedWeightsList: [],
+          emptyWeightsList: [],
+          tempLoadedWeight: "",
+          tempEmptyWeight: "",
+          numberOfBoxes: "",
+          notes: "",
+        });
+        setEnteringDeliveryFromOrder(false);
+        setSelectedOrder(null);
+        await loadDeliveries();
+        alert('Delivery created and order marked as delivered!');
+      } else {
+        const text = await res.text();
+        alert("Error: " + text);
+      }
+    } catch (err) {
+      alert("Network error");
     }
   }
 
@@ -1481,11 +1536,11 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         )}
 
         {/* Order Details Modal */}
-        {selectedOrder && (
+        {selectedOrder && !enteringDeliveryFromOrder && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
               <div className="sticky top-0 bg-green-600 text-white p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">📋 Order Details</h2>
+                <h2 className="text-2xl font-bold">📋 {t('order.details')}</h2>
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="text-2xl hover:text-gray-200 transition-colors"
@@ -1497,23 +1552,23 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Customer Name</p>
+                    <p className="text-sm text-gray-600">👤 {t('form.customerName')}</p>
                     <p className="font-bold text-lg">{selectedOrder.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Phone Number</p>
+                    <p className="text-sm text-gray-600">📱 {t('customer.phoneNumber')}</p>
                     <p className="font-bold text-lg">{selectedOrder.customerPhone}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Chick Type</p>
+                    <p className="text-sm text-gray-600">🐔 {t('form.chickType')}</p>
                     <p className="font-bold text-lg">{selectedOrder.chickType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Number of Boxes</p>
+                    <p className="text-sm text-gray-600">📦 {t('form.numberOfBoxes')}</p>
                     <p className="font-bold text-lg">{selectedOrder.quantity}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Order Status</p>
+                    <p className="text-sm text-gray-600">{t('order.status')}</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
                       selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                       selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
@@ -1524,20 +1579,20 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Order Date</p>
+                    <p className="text-sm text-gray-600">📅 Date</p>
                     <p className="font-bold text-lg">{formatDateWithOrdinal(selectedOrder.createdAt)}</p>
                   </div>
                 </div>
 
                 {selectedOrder.notes && (
                   <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">📝 Notes</p>
+                    <p className="text-sm text-gray-600 mb-1">📝 {t('form.notes')}</p>
                     <p className="text-gray-800">{selectedOrder.notes}</p>
                   </div>
                 )}
 
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">💬 Send Message to Customer</p>
+                  <p className="text-sm text-gray-600 mb-2">💬 {t('order.sendMessage')}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
@@ -1547,7 +1602,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                       }}
                       className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
                     >
-                      💬 WhatsApp Message
+                      💬 {t('order.whatsappMessage')}
                     </button>
                     <button
                       onClick={() => {
@@ -1557,17 +1612,217 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                       }}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
                     >
-                      📱 SMS Message
+                      📱 {t('order.smsMessage')}
                     </button>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4 border-t">
+                  {selectedOrder.status === 'confirmed' && (
+                    <button
+                      onClick={() => setEnteringDeliveryFromOrder(true)}
+                      className="flex-1 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold"
+                    >
+                      📝 {t('form.submitDelivery')}
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedOrder(null)}
                     className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
                   >
-                    ❌ Close
+                    ❌ {t('btn.close')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delivery Entry from Order Modal */}
+        {selectedOrder && enteringDeliveryFromOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
+              <div className="sticky top-0 bg-orange-600 text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">📝 {t('form.submitDelivery')}</h2>
+                <button
+                  onClick={() => setEnteringDeliveryFromOrder(false)}
+                  className="text-2xl hover:text-gray-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">👤 {t('form.customerName')}</p>
+                    <p className="font-bold">{selectedOrder.customerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">🐔 {t('form.chickType')}</p>
+                    <p className="font-bold">{selectedOrder.chickType}</p>
+                  </div>
+                </div>
+
+                {/* Weight Entry */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <label className="block text-sm font-medium text-blue-800 mb-2">📈 {t('form.loadedWeight')}</label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={orderDeliveryForm.tempLoadedWeight}
+                        onChange={(e) => setOrderDeliveryForm({...orderDeliveryForm, tempLoadedWeight: e.target.value === "" ? "" : Number(e.target.value)})}
+                        className="flex-1 border-2 border-blue-200 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
+                        placeholder="Enter weight"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (orderDeliveryForm.tempLoadedWeight === "" || Number.isNaN(Number(orderDeliveryForm.tempLoadedWeight))) return;
+                          setOrderDeliveryForm({
+                            ...orderDeliveryForm,
+                            loadedWeightsList: [...orderDeliveryForm.loadedWeightsList, Number(orderDeliveryForm.tempLoadedWeight)],
+                            tempLoadedWeight: ""
+                          });
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      >
+                        ➕ {t('form.addWeight')}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      {orderDeliveryForm.loadedWeightsList.length > 0 ? (
+                        orderDeliveryForm.loadedWeightsList.map((w, i) => (
+                          <div key={i} className="flex items-center justify-between bg-white p-2 rounded border">
+                            <span className="font-medium">{i + 1}. {w.toFixed(2)} kg</span>
+                            <button
+                              type="button"
+                              onClick={() => setOrderDeliveryForm({
+                                ...orderDeliveryForm,
+                                loadedWeightsList: orderDeliveryForm.loadedWeightsList.filter((_, idx) => idx !== i)
+                              })}
+                              className="text-red-600 hover:text-red-800 font-semibold"
+                            >
+                              ❌
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm italic">No measurements added yet</div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-white p-2 rounded border-2 border-blue-300">
+                      <span className="text-sm text-blue-800">Total: </span>
+                      <span className="font-bold text-blue-900">
+                        {orderDeliveryForm.loadedWeightsList.reduce((s,v) => s + v, 0).toFixed(2)} kg
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <label className="block text-sm font-medium text-red-800 mb-2">📉 {t('form.emptyWeight')}</label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={orderDeliveryForm.tempEmptyWeight}
+                        onChange={(e) => setOrderDeliveryForm({...orderDeliveryForm, tempEmptyWeight: e.target.value === "" ? "" : Number(e.target.value)})}
+                        className="flex-1 border-2 border-red-200 rounded-lg px-3 py-2 focus:border-red-500 focus:outline-none"
+                        placeholder="Enter weight"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (orderDeliveryForm.tempEmptyWeight === "" || Number.isNaN(Number(orderDeliveryForm.tempEmptyWeight))) return;
+                          setOrderDeliveryForm({
+                            ...orderDeliveryForm,
+                            emptyWeightsList: [...orderDeliveryForm.emptyWeightsList, Number(orderDeliveryForm.tempEmptyWeight)],
+                            tempEmptyWeight: ""
+                          });
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                      >
+                        ➕ {t('form.addWeight')}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      {orderDeliveryForm.emptyWeightsList.length > 0 ? (
+                        orderDeliveryForm.emptyWeightsList.map((w, i) => (
+                          <div key={i} className="flex items-center justify-between bg-white p-2 rounded border">
+                            <span className="font-medium">{i + 1}. {w.toFixed(2)} kg</span>
+                            <button
+                              type="button"
+                              onClick={() => setOrderDeliveryForm({
+                                ...orderDeliveryForm,
+                                emptyWeightsList: orderDeliveryForm.emptyWeightsList.filter((_, idx) => idx !== i)
+                              })}
+                              className="text-red-600 hover:text-red-800 font-semibold"
+                            >
+                              ❌
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm italic">No measurements added yet</div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-white p-2 rounded border-2 border-red-300">
+                      <span className="text-sm text-red-800">Total: </span>
+                      <span className="font-bold text-red-900">
+                        {orderDeliveryForm.emptyWeightsList.reduce((s,v) => s + v, 0).toFixed(2)} kg
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">📦 {t('form.numberOfBoxes')}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={orderDeliveryForm.numberOfBoxes}
+                    onChange={(e) => setOrderDeliveryForm({...orderDeliveryForm, numberOfBoxes: e.target.value === "" ? "" : Number(e.target.value)})}
+                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-orange-500 focus:outline-none"
+                    placeholder="Enter number of boxes"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">📋 {t('form.notes')}</label>
+                  <textarea
+                    value={orderDeliveryForm.notes}
+                    onChange={(e) => setOrderDeliveryForm({...orderDeliveryForm, notes: e.target.value})}
+                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-orange-500 focus:outline-none"
+                    rows={2}
+                    placeholder="Add any additional notes..."
+                  />
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-800">📊 {t('delivery.netWeight')}:</p>
+                  <p className="text-3xl font-bold text-green-900">
+                    {(orderDeliveryForm.loadedWeightsList.reduce((s,v) => s + v, 0) - orderDeliveryForm.emptyWeightsList.reduce((s,v) => s + v, 0)).toFixed(2)} kg
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <button
+                    onClick={submitDeliveryFromOrder}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                  >
+                    ✅ {t('form.submitDelivery')}
+                  </button>
+                  <button
+                    onClick={() => setEnteringDeliveryFromOrder(false)}
+                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+                  >
+                    ❌ {t('btn.cancel')}
                   </button>
                 </div>
               </div>
