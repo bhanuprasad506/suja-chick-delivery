@@ -1020,11 +1020,499 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </div>
         </div>
 
-        {/* Delivery Form */}
-        <form className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-orange-500" onSubmit={submit}>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📝 {t('admin.newDelivery')}</h2>
-          
-          <div className="grid grid-cols-1 gap-4">
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 mb-6">
+          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4">
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              📋 {t('admin.recentDeliveries')} ({deliveries.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'orders' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              🛒 {t('admin.customerOrders')} ({orders.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Customer Orders Management - Show First */}
+        {activeTab === 'orders' && (
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">🛒 {t('admin.customerOrders')}</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowOrderDeleteOptions(!showOrderDeleteOptions)}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+              >
+                🗑️ {t('admin.deleteOptions')}
+              </button>
+              <button
+                onClick={loadOrders}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+              >
+                🔄 Refresh Orders
+              </button>
+            </div>
+          </div>
+
+          {/* Order Delete Options Panel */}
+          {showOrderDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All Orders */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Orders</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL customer orders.</p>
+                  <button
+                    onClick={deleteAllOrders}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ Delete All ({orders.length} orders)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all orders from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteOrdersByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ {t('admin.deleteByDate')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowOrderDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ {t('btn.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {orders.length > 0 ? (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div 
+                  key={order.id} 
+                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-800">{order.customerName}</h3>
+                      <p className="text-green-600 font-medium">{order.chickType} - {order.quantity} boxes</p>
+                      <p className="text-sm text-gray-500">📱 {order.customerPhone}</p>
+                      <p className="text-xs text-gray-400">Order #{order.id} - {formatDateWithOrdinal(order.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {order.notes && (
+                    <p className="text-sm text-gray-600 mb-3 italic">📝 {order.notes}</p>
+                  )}
+                  
+                  <div className="text-sm text-green-600 font-medium">
+                    👆 Tap to enter delivery details
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {order.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'confirmed');
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold"
+                        >
+                          ✅ {t('order.confirmOrder')}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'cancelled');
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-semibold"
+                        >
+                          ❌ {t('order.cancelOrder')}
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'confirmed' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'delivered');
+                        }}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold"
+                      >
+                        🚚 {t('order.markDelivered')}
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteOrder(order.id);
+                      }}
+                      className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-semibold"
+                    >
+                      🗑️ {t('order.deleteOrder')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">🛒</div>
+              <p className="text-gray-500">No customer orders yet.</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Orders placed by customers will appear here for processing.
+              </p>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Recent Deliveries */}
+        {activeTab === 'deliveries' && (
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">📋 {t('admin.recentDeliveries')}</h2>
+            <button
+              onClick={() => setShowDeleteOptions(!showDeleteOptions)}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+            >
+              🗑️ {t('admin.deleteOptions')}
+            </button>
+          </div>
+
+          {/* Delete Options Panel */}
+          {showDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Deliveries</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL delivery records.</p>
+                  <button
+                    onClick={deleteAllDeliveries}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ {t('admin.deleteAll')} ({deliveries.length} items)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all deliveries from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ {t('admin.deleteByDate')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ {t('btn.cancel')}
+                </button>
+              </div>
+            </div>
+          )} {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 mb-6">
+          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'orders' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              🛒 {t('admin.customerOrders')} ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              📋 {t('admin.recentDeliveries')} ({deliveries.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Customer Orders Management - Show First */}
+        {activeTab === 'orders' && (
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">🛒 {t('admin.customerOrders')}</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowOrderDeleteOptions(!showOrderDeleteOptions)}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+              >
+                🗑️ {t('admin.deleteOptions')}
+              </button>
+              <button
+                onClick={loadOrders}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+              >
+                🔄 Refresh Orders
+              </button>
+            </div>
+          </div>
+
+          {/* Order Delete Options Panel */}
+          {showOrderDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All Orders */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Orders</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL customer orders.</p>
+                  <button
+                    onClick={deleteAllOrders}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ Delete All ({orders.length} orders)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all orders from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteOrdersByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ {t('admin.deleteByDate')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowOrderDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ {t('btn.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {orders.length > 0 ? (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div 
+                  key={order.id} 
+                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-800">{order.customerName}</h3>
+                      <p className="text-green-600 font-medium">{order.chickType} - {order.quantity} boxes</p>
+                      <p className="text-sm text-gray-500">📱 {order.customerPhone}</p>
+                      <p className="text-xs text-gray-400">Order #{order.id} - {formatDateWithOrdinal(order.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {order.notes && (
+                    <p className="text-sm text-gray-600 mb-3 italic">📝 {order.notes}</p>
+                  )}
+                  
+                  <div className="text-sm text-green-600 font-medium">
+                    👆 Tap to enter delivery details
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {order.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'confirmed');
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold"
+                        >
+                          ✅ {t('order.confirmOrder')}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateOrderStatus(order.id, 'cancelled');
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-semibold"
+                        >
+                          ❌ {t('order.cancelOrder')}
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'confirmed' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'delivered');
+                        }}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold"
+                      >
+                        🚚 {t('order.markDelivered')}
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteOrder(order.id);
+                      }}
+                      className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-semibold"
+                    >
+                      🗑️ {t('order.deleteOrder')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">🛒</div>
+              <p className="text-gray-500">No customer orders yet.</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Orders placed by customers will appear here for processing.
+              </p>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Recent Deliveries */}
+        {activeTab === 'deliveries' && (
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">📋 {t('admin.recentDeliveries')}</h2>
+            <button
+              onClick={() => setShowDeleteOptions(!showDeleteOptions)}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+            >
+              🗑️ {t('admin.deleteOptions')}
+            </button>
+          </div>
+
+          {/* Delete Options Panel */}
+          {showDeleteOptions && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Delete All */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">Delete All Deliveries</h4>
+                  <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL delivery records.</p>
+                  <button
+                    onClick={deleteAllDeliveries}
+                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    🗑️ {t('admin.deleteAll')} ({deliveries.length} items)
+                  </button>
+                </div>
+
+                {/* Delete by Date */}
+                <div className="bg-white p-3 rounded border">
+                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
+                  <p className="text-sm text-gray-600 mb-3">Delete all deliveries from a specific date.</p>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                  />
+                  <button
+                    onClick={deleteByDate}
+                    disabled={!selectedDate}
+                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                  >
+                    🗑️ {t('admin.deleteByDate')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => setShowDeleteOptions(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  ❌ {t('btn.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">👤 {t('form.customerName')}</label>
               <input
