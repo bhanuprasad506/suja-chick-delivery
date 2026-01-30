@@ -47,6 +47,7 @@ export default function CustomerPortal() {
   // Track if form was submitted to show success message
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [customerPhoneFilter, setCustomerPhoneFilter] = useState("");
 
   useEffect(() => {
     loadDeliveries();
@@ -331,14 +332,14 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6 border-l-4 border-blue-500">
           <h2 className="text-lg font-bold text-gray-800 mb-3">🔍 {t('customer.findDeliveries')}</h2>
           <input
-            type="text"
-            placeholder="Search by customer name, phone, or any detail..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            type="tel"
+            placeholder="Enter your phone number to see your orders..."
+            value={customerPhoneFilter}
+            onChange={(e) => setCustomerPhoneFilter(e.target.value)}
             className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none text-lg"
           />
           <p className="text-sm text-gray-500 mt-2">
-            💡 Tip: Search for your name, phone number, or any detail to find your deliveries
+            💡 Enter your phone number to view your orders and deliveries
           </p>
         </div>
 
@@ -379,18 +380,9 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               <div className="text-4xl mb-2">⏳</div>
               <p>Loading deliveries...</p>
             </div>
-          ) : deliveries.length > 0 ? (
+          ) : customerPhoneFilter && deliveries.length > 0 ? (
             <div className="space-y-3">
-              {deliveries
-                .filter(d => 
-                  searchTerm === '' || 
-                  d.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  d.chickType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  d.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  d.netWeight.toString().includes(searchTerm) ||
-                  d.createdAt.includes(searchTerm)
-                )
-                .map((d) => (
+              {deliveries.map((d) => (
                 <div 
                   key={d.id} 
                   className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
@@ -436,9 +428,9 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           ) : (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">📦</div>
-              <p className="text-gray-500">{t('msg.noDeliveries')}</p>
+              <p className="text-gray-500">{customerPhoneFilter ? 'No deliveries found for this phone number.' : 'Enter your phone number to see your deliveries.'}</p>
               <p className="text-sm text-gray-400 mt-2">
-                Contact admin to add delivery records.
+                {customerPhoneFilter ? 'Contact admin if you believe this is an error.' : 'Your deliveries will appear here once admin processes your orders.'}
               </p>
             </div>
           )}
@@ -453,14 +445,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           {completedOrders.length > 0 ? (
             <div className="space-y-3">
               {completedOrders
-                .filter(o => 
-                  searchTerm === '' || 
-                  o.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  o.chickType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  o.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  o.customerPhone.includes(searchTerm) ||
-                  o.createdAt.includes(searchTerm)
-                )
+                .filter(o => customerPhoneFilter === '' || o.customerPhone === customerPhoneFilter)
                 .map((order) => (
                 <div 
                   key={order.id} 
@@ -493,9 +478,9 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           ) : (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">✅</div>
-              <p className="text-gray-500">No completed deliveries yet.</p>
+              <p className="text-gray-500">{customerPhoneFilter ? 'No completed orders yet for this phone number.' : 'Enter your phone number to see your completed orders.'}</p>
               <p className="text-sm text-gray-400 mt-2">
-                Orders marked as "Done" by admin will appear here.
+                {customerPhoneFilter ? 'Your completed orders will appear here.' : 'Your orders will appear here once they are delivered.'}
               </p>
             </div>
           )}

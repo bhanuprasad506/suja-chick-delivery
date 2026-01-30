@@ -39,7 +39,7 @@ export default function App() {
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [activeTab, setActiveTab] = useState<'deliveries' | 'orders'>('deliveries');
+  const [activeTab, setActiveTab] = useState<'deliveries' | 'orders'>('orders');
   const [showOrderDeleteOptions, setShowOrderDeleteOptions] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -1020,7 +1020,8 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </div>
         </div>
 
-        {/* Delivery Form */}
+        {/* Delivery Form - HIDDEN */}
+        {false && (
         <form className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-orange-500" onSubmit={submit}>
           <h2 className="text-xl font-bold text-gray-800 mb-4">📝 {t('admin.newDelivery')}</h2>
           
@@ -1208,18 +1209,11 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
           </div>
         </form>
+        )}
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 mb-6">
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4">
-            <button
-              onClick={() => setActiveTab('deliveries')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              📋 {t('admin.recentDeliveries')} ({deliveries.length})
-            </button>
             <button
               onClick={() => setActiveTab('orders')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -1227,6 +1221,14 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               }`}
             >
               🛒 {t('admin.customerOrders')} ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              📋 {t('admin.recentDeliveries')} ({deliveries.length})
             </button>
           </div>
         </div>
