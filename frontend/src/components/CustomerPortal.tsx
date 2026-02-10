@@ -328,7 +328,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           <div className="text-center mb-8">
             <div className="h-24 mb-4 flex justify-center">
               <img 
-                src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" 
+                src="https://res.cloudinary.com/dyobufbnk/image/upload/v1770722646/suja_ani_-_Copy_ylshob.png" 
                 alt="Suja Chicken & Eggs" 
                 className="h-full object-contain drop-shadow-lg hover:drop-shadow-xl transition-all"
               />
@@ -453,7 +453,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         <div className="max-w-3xl mx-auto relative z-10">
           {/* Header with Logo */}
           <div className="text-center mb-8">
-            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1770722646/suja_ani_-_Copy_ylshob.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-1">Suja Chick Delivery</h1>
             <p className="text-teal-600 font-medium">Delivery Details</p>
           </div>
@@ -665,7 +665,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           </div>
           <div className="h-24 mb-6 flex justify-center">
             <img 
-              src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" 
+              src="https://res.cloudinary.com/dyobufbnk/image/upload/v1770722646/suja_ani_-_Copy_ylshob.png" 
               alt="Suja Chicken & Eggs" 
               className="h-full object-contain drop-shadow-lg hover:drop-shadow-xl transition-all"
             />

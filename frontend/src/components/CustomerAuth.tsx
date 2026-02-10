@@ -55,7 +55,7 @@ export default function CustomerAuth({ onLogin }: CustomerAuthProps) {
         <div className="text-center mb-10">
           <div className="h-32 mb-6 flex justify-center">
             <img 
-              src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" 
+              src="https://res.cloudinary.com/dyobufbnk/image/upload/v1770722646/suja_ani_-_Copy_ylshob.png" 
               alt="Suja Chicken & Eggs" 
               className="h-full object-contain drop-shadow-lg hover:drop-shadow-xl transition-all"
             />
@@ -133,13 +133,20 @@ export default function CustomerAuth({ onLogin }: CustomerAuthProps) {
                 </>
               )}
             </button>
+
+            {/* Admin Portal Button */}
+            <a 
+              href="/admin" 
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl hover:from-red-700 hover:to-orange-700 transition-all font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 mt-3"
+            >
+              <span className="text-xl">🔐</span>
+              <span>Admin Portal</span>
+              <span>→</span>
+            </a>
           </form>
 
           {/* Toggle Auth Mode */}
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-            <p className="text-gray-600 text-sm mb-3">
-              {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            </p>
+          <div className="mt-6">
             <button
               type="button"
               onClick={() => {
@@ -148,9 +155,9 @@ export default function CustomerAuth({ onLogin }: CustomerAuthProps) {
                 setName('');
               }}
               disabled={isLoading}
-              className="text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors disabled:opacity-50"
+              className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
-              {isLogin ? 'Create Account' : 'Login'}
+              {isLogin ? '📝 Create Account' : '🔓 Login'}
             </button>
           </div>
 
@@ -160,18 +167,6 @@ export default function CustomerAuth({ onLogin }: CustomerAuthProps) {
               ✅ {isLogin ? 'Enter your phone number to login to your existing account' : 'Create a new account with your phone number and name'}
             </p>
           </div>
-        </div>
-
-        {/* Admin Portal Link */}
-        <div className="mt-8 text-center">
-          <a 
-            href="/admin" 
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors group"
-          >
-            <span className="text-lg">🔐</span>
-            <span>Admin Portal</span>
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </a>
         </div>
       </div>
     </div>

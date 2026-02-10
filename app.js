@@ -203,10 +203,11 @@ app.post('/deliveries', async (req, res) => {
     numberOfBoxes, 
     notes,
     loadedWeightsList,
-    emptyWeightsList
+    emptyWeightsList,
+    orderId
   } = req.body;
   
-  console.log('📝 Received delivery request:', { customerName, customerPhone, chickType, loadedBoxWeight, emptyBoxWeight });
+  console.log('📝 Received delivery request:', { customerName, customerPhone, chickType, loadedBoxWeight, emptyBoxWeight, orderId });
   
   if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
     console.log('❌ Missing required fields');
@@ -223,7 +224,8 @@ app.post('/deliveries', async (req, res) => {
       numberOfBoxes,
       notes,
       loadedWeightsList,
-      emptyWeightsList
+      emptyWeightsList,
+      orderId
     });
     console.log('✅ Delivery created successfully');
     res.status(201).json(delivery);
@@ -248,7 +250,8 @@ app.put('/deliveries/:id', async (req, res) => {
     numberOfBoxes, 
     notes,
     loadedWeightsList,
-    emptyWeightsList
+    emptyWeightsList,
+    orderId
   } = req.body;
   
   if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
@@ -265,7 +268,8 @@ app.put('/deliveries/:id', async (req, res) => {
       numberOfBoxes,
       notes,
       loadedWeightsList,
-      emptyWeightsList
+      emptyWeightsList,
+      orderId
     });
     
     if (updatedDelivery) {

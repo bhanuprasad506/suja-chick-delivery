@@ -29,25 +29,8 @@
       "loadedWeightsList": [],
       "emptyWeightsList": [],
       "createdAt": "2026-02-10T11:01:48.065Z"
-    },
-    {
-      "id": 21,
-      "customerName": "bunny",
-      "customerPhone": "8519984203",
-      "chickType": "Boiler",
-      "loadedBoxWeight": 23,
-      "emptyBoxWeight": 3,
-      "numberOfBoxes": 1,
-      "netWeight": 20,
-      "loadedWeightsList": [
-        23
-      ],
-      "emptyWeightsList": [
-        3
-      ],
-      "createdAt": "2026-02-10T11:06:54.286Z"
     }
   ],
-  "idCounter": 22,
-  "lastSaved": "2026-02-10T11:06:54.286Z"
+  "idCounter": 20,
+  "backupTime": "2026-02-10T11:02:24.806Z"
 }
