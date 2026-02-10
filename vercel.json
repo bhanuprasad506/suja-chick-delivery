@@ -2,29 +2,45 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "server/src/index.ts",
+      "src": "app.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/app.js"
+    },
+    {
       "src": "/health",
-      "dest": "/server/src/index.ts"
+      "dest": "/app.js"
+    },
+    {
+      "src": "/debug",
+      "dest": "/app.js"
     },
     {
       "src": "/deliveries(.*)",
-      "dest": "/server/src/index.ts"
+      "dest": "/app.js"
+    },
+    {
+      "src": "/orders(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/customers(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/export",
+      "dest": "/app.js"
     },
     {
       "src": "/(.*)",
       "dest": "/frontend/dist/$1"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

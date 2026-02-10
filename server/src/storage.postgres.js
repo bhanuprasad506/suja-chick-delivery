@@ -23,6 +23,7 @@ class PostgresStorage {
         CREATE TABLE IF NOT EXISTS deliveries (
           id SERIAL PRIMARY KEY,
           customer_name VARCHAR(255) NOT NULL,
+          customer_phone VARCHAR(20),
           chick_type VARCHAR(100) NOT NULL,
           loaded_box_weight DECIMAL(10,2) NOT NULL,
           empty_box_weight DECIMAL(10,2) NOT NULL,
@@ -82,6 +83,7 @@ class PostgresStorage {
       return result.rows.map(row => ({
         id: row.id,
         customerName: row.customer_name,
+        customerPhone: row.customer_phone,
         chickType: row.chick_type,
         loadedBoxWeight: parseFloat(row.loaded_box_weight),
         emptyBoxWeight: parseFloat(row.empty_box_weight),
@@ -105,18 +107,20 @@ class PostgresStorage {
       
       console.log('📝 Creating delivery:', {
         customer: input.customerName,
+        phone: input.customerPhone,
         type: input.chickType,
         netWeight: netWeight
       });
       
       const result = await this.pool.query(`
         INSERT INTO deliveries (
-          customer_name, chick_type, loaded_box_weight, empty_box_weight, 
+          customer_name, customer_phone, chick_type, loaded_box_weight, empty_box_weight, 
           net_weight, number_of_boxes, notes, loaded_weights_list, empty_weights_list
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `, [
         input.customerName,
+        input.customerPhone,
         input.chickType,
         input.loadedBoxWeight,
         input.emptyBoxWeight,
@@ -131,6 +135,7 @@ class PostgresStorage {
       const delivery = {
         id: row.id,
         customerName: row.customer_name,
+        customerPhone: row.customer_phone,
         chickType: row.chick_type,
         loadedBoxWeight: parseFloat(row.loaded_box_weight),
         emptyBoxWeight: parseFloat(row.empty_box_weight),
@@ -157,13 +162,14 @@ class PostgresStorage {
       
       const result = await this.pool.query(`
         UPDATE deliveries SET 
-          customer_name = $1, chick_type = $2, loaded_box_weight = $3, 
-          empty_box_weight = $4, net_weight = $5, number_of_boxes = $6, 
-          notes = $7, loaded_weights_list = $8, empty_weights_list = $9
-        WHERE id = $10
+          customer_name = $1, customer_phone = $2, chick_type = $3, loaded_box_weight = $4, 
+          empty_box_weight = $5, net_weight = $6, number_of_boxes = $7, 
+          notes = $8, loaded_weights_list = $9, empty_weights_list = $10
+        WHERE id = $11
         RETURNING *
       `, [
         input.customerName,
+        input.customerPhone,
         input.chickType,
         input.loadedBoxWeight,
         input.emptyBoxWeight,
@@ -181,6 +187,7 @@ class PostgresStorage {
       return {
         id: row.id,
         customerName: row.customer_name,
+        customerPhone: row.customer_phone,
         chickType: row.chick_type,
         loadedBoxWeight: parseFloat(row.loaded_box_weight),
         emptyBoxWeight: parseFloat(row.empty_box_weight),

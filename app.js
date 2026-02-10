@@ -13,6 +13,24 @@ const PORT = process.env.PORT || 4000;
 // Parse JSON bodies
 app.use(express.json());
 
+// Enable CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 // Initialize Twilio for SMS (optional - only if credentials are provided)
 let twilioClient = null;
 if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
@@ -25,24 +43,61 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.e
 
 // Initialize storage
 let storage;
+let customerStorage;
 
 async function initStorage() {
-  if (process.env.DATABASE_URL) {
+  // Try Firebase first if credentials are provided
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    try {
+      const admin = require('firebase-admin');
+      
+      // Parse private key (handle newline characters)
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+      
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          privateKey: privateKey,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+        }),
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+      });
+      
+      console.log('✅ Firebase initialized successfully');
+      
+      // Use Firebase storage
+      const { FirebaseStorage } = require('./server/src/storage.firebase.js');
+      storage = new FirebaseStorage();
+      await storage.initDatabase();
+      console.log('✅ Using Firebase Firestore - data will persist');
+    } catch (err) {
+      console.error('❌ Firebase failed, falling back to file storage:', err);
+      const { FileStorage } = require('./server/src/storage.file.js');
+      storage = new FileStorage();
+      console.log('⚠️ Using file storage (data may not persist on free hosting)');
+    }
+  } else if (process.env.DATABASE_URL) {
     try {
       const { PostgresStorage } = require('./server/src/storage.postgres.js');
       storage = new PostgresStorage();
-      await storage.initDatabase(); // Wait for database initialization
+      await storage.initDatabase();
       console.log('✅ Using PostgreSQL storage - data will persist');
-      return;
     } catch (err) {
       console.error('❌ PostgreSQL failed, falling back to file storage:', err);
+      const { FileStorage } = require('./server/src/storage.file.js');
+      storage = new FileStorage();
+      console.log('⚠️ Using file storage (data may not persist on free hosting)');
     }
+  } else {
+    // Fallback to file storage
+    const { FileStorage } = require('./server/src/storage.file.js');
+    storage = new FileStorage();
+    console.log('⚠️ Using file storage (data may not persist on free hosting)');
   }
-  
-  // Fallback to file storage
-  const { FileStorage } = require('./server/src/storage.file.js');
-  storage = new FileStorage();
-  console.log('⚠️ Using file storage (data may not persist on free hosting)');
+
+  // Initialize customer storage
+  const { CustomerStorage } = require('./server/src/storage.customers.js');
+  customerStorage = new CustomerStorage();
 }
 
 // Global error handler
@@ -140,7 +195,8 @@ app.get('/export', async (req, res) => {
 
 app.post('/deliveries', async (req, res) => {
   const { 
-    customerName, 
+    customerName,
+    customerPhone,
     chickType, 
     loadedBoxWeight, 
     emptyBoxWeight, 
@@ -150,7 +206,7 @@ app.post('/deliveries', async (req, res) => {
     emptyWeightsList
   } = req.body;
   
-  console.log('📝 Received delivery request:', { customerName, chickType, loadedBoxWeight, emptyBoxWeight });
+  console.log('📝 Received delivery request:', { customerName, customerPhone, chickType, loadedBoxWeight, emptyBoxWeight });
   
   if (!customerName || !chickType || loadedBoxWeight === undefined || emptyBoxWeight === undefined) {
     console.log('❌ Missing required fields');
@@ -160,6 +216,7 @@ app.post('/deliveries', async (req, res) => {
   try {
     const delivery = await storage.create({
       customerName,
+      customerPhone,
       chickType,
       loadedBoxWeight,
       emptyBoxWeight,
@@ -183,7 +240,8 @@ app.post('/deliveries', async (req, res) => {
 app.put('/deliveries/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   const { 
-    customerName, 
+    customerName,
+    customerPhone,
     chickType, 
     loadedBoxWeight, 
     emptyBoxWeight, 
@@ -200,6 +258,7 @@ app.put('/deliveries/:id', async (req, res) => {
   try {
     const updatedDelivery = await storage.update(id, {
       customerName,
+      customerPhone,
       chickType,
       loadedBoxWeight,
       emptyBoxWeight,
@@ -288,6 +347,54 @@ async function sendSMSNotification(phoneNumber, message) {
     return false;
   }
 }
+
+// Customer Management Endpoints
+// Register new customer
+app.post('/customers/register', async (req, res) => {
+  if (!customerStorage) {
+    return res.status(500).json({ error: 'Server not ready. Please try again.' });
+  }
+
+  const { phone, name } = req.body;
+  
+  if (!phone || !name) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    const customer = customerStorage.register(phone, name);
+    res.status(201).json({ id: customer.id, phone: customer.phone, name: customer.name });
+  } catch (err) {
+    console.error('❌ Failed to register customer:', err);
+    res.status(500).json({ error: 'Failed to register customer' });
+  }
+});
+
+// Customer login
+app.post('/customers/login', async (req, res) => {
+  if (!customerStorage) {
+    return res.status(500).json({ error: 'Server not ready. Please try again.' });
+  }
+
+  const { phone, name } = req.body;
+  
+  if (!phone) {
+    return res.status(400).json({ error: 'Missing phone number' });
+  }
+
+  try {
+    const customer = customerStorage.login(phone, name);
+    
+    if (!customer) {
+      return res.status(404).json({ error: 'Account not found. Please create an account first.' });
+    }
+    
+    res.json({ id: customer.id, phone: customer.phone, name: customer.name });
+  } catch (err) {
+    console.error('❌ Failed to login customer:', err);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
 
 // Order Management Endpoints
 let orders = []; // Simple in-memory storage for orders (in production, use database)
@@ -408,6 +515,35 @@ app.delete('/orders/:id', async (req, res) => {
   } catch (err) {
     console.error('❌ Failed to delete order:', err);
     res.status(500).json({ error: 'Failed to delete order' });
+  }
+});
+
+// Delete all orders
+app.delete('/orders', async (req, res) => {
+  try {
+    const count = orders.length;
+    orders = [];
+    console.log(`🗑️ Deleted all orders: ${count} items`);
+    res.json({ success: true, deletedCount: count });
+  } catch (err) {
+    console.error('❌ Failed to delete all orders:', err);
+    res.status(500).json({ error: 'Failed to delete all orders' });
+  }
+});
+
+// Delete orders by date
+app.delete('/orders/date/:date', async (req, res) => {
+  const date = req.params.date; // Format: YYYY-MM-DD
+  
+  try {
+    const beforeCount = orders.length;
+    orders = orders.filter(o => !o.createdAt.startsWith(date));
+    const deletedCount = beforeCount - orders.length;
+    console.log(`🗑️ Deleted orders for ${date}: ${deletedCount} items`);
+    res.json({ success: true, deletedCount, date });
+  } catch (err) {
+    console.error('❌ Failed to delete orders by date:', err);
+    res.status(500).json({ error: 'Failed to delete orders by date' });
   }
 });
 

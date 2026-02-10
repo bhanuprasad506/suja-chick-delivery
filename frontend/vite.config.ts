@@ -51,13 +51,37 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    host: true,
+    host: '0.0.0.0',
     proxy: {
-      '/deliveries': 'http://127.0.0.1:4000',
-      '/orders': 'http://127.0.0.1:4000',
-      '/health': 'http://127.0.0.1:4000',
-      '/debug': 'http://127.0.0.1:4000',
-      '/export': 'http://127.0.0.1:4000',
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/deliveries': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/orders': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/customers': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/health': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/debug': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      '/export': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
     },
   },
 });

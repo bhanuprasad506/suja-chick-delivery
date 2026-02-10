@@ -165,6 +165,7 @@ class FileStorage {
     const delivery = {
       id: this.idCounter++,
       customerName: input.customerName,
+      customerPhone: input.customerPhone,
       chickType: input.chickType,
       loadedBoxWeight: input.loadedBoxWeight,
       emptyBoxWeight: input.emptyBoxWeight,
@@ -221,6 +222,7 @@ class FileStorage {
     const updatedDelivery = {
       ...this.deliveries[index],
       customerName: input.customerName,
+      customerPhone: input.customerPhone,
       chickType: input.chickType,
       loadedBoxWeight: input.loadedBoxWeight,
       emptyBoxWeight: input.emptyBoxWeight,

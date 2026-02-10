@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "./contexts/LanguageContext";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import SplashScreen from "./components/SplashScreen";
 
 type Delivery = {
   id: number;
   customerName: string;
+  customerPhone?: string;
   chickType: string;
   netWeight: number;
   createdAt: string;
@@ -27,10 +29,26 @@ type Order = {
   status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
   createdAt: string;
   updatedAt: string;
+  // Delivery details (added by admin)
+  loadedBoxWeight?: number;
+  emptyBoxWeight?: number;
+  numberOfBoxes?: number;
+  loadedWeightsList?: number[];
+  emptyWeightsList?: number[];
+  deliveryNotes?: string;
 };
 
 export default function App() {
   const { t } = useLanguage();
+  const [showSplash, setShowSplash] = useState(true);
+  
+  // Helper function to get backend URL
+  const getBackendUrl = (path: string) => {
+    if (process.env.NODE_ENV === 'production') {
+      return path;
+    }
+    return `http://localhost:4000${path}`;
+  };
   const [health, setHealth] = useState<string | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,9 +57,10 @@ export default function App() {
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [activeTab, setActiveTab] = useState<'deliveries' | 'orders'>('orders');
+  const [activeTab, setActiveTab] = useState<'deliveries' | 'orders'>('deliveries');
   const [showOrderDeleteOptions, setShowOrderDeleteOptions] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminMobile, setAdminMobile] = useState("");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
@@ -155,7 +174,7 @@ export default function App() {
 
   async function fetchHealth() {
     try {
-      const res = await fetch("/health");
+      const res = await fetch(getBackendUrl("/health"));
       const j = await res.json();
       setHealth(j?.status ?? null);
     } catch (_) {
@@ -166,7 +185,7 @@ export default function App() {
   async function loadDeliveries() {
     setLoading(true);
     try {
-      const res = await fetch("/deliveries");
+      const res = await fetch(getBackendUrl("/deliveries"));
       if (res.ok) {
         setDeliveries(await res.json());
       } else {
@@ -181,7 +200,7 @@ export default function App() {
 
   async function loadOrders() {
     try {
-      const res = await fetch("/orders");
+      const res = await fetch(getBackendUrl("/orders"));
       if (res.ok) {
         setOrders(await res.json());
       } else {
@@ -194,7 +213,7 @@ export default function App() {
 
   async function updateOrderStatus(orderId: number, status: string) {
     try {
-      const res = await fetch(`/orders/${orderId}`, {
+      const res = await fetch(getBackendUrl(`/orders/${orderId}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -213,7 +232,7 @@ export default function App() {
 
   async function deleteOrder(orderId: number) {
     try {
-      const res = await fetch(`/orders/${orderId}`, {
+      const res = await fetch(getBackendUrl(`/orders/${orderId}`), {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -230,6 +249,7 @@ export default function App() {
     const sum = (arr: number[], fallback: number | "") => (arr && arr.length > 0 ? arr.reduce((s, v) => s + v, 0) : Number(fallback) || 0);
     const payload = {
       customerName: selectedOrder.customerName,
+      customerPhone: selectedOrder.customerPhone,
       chickType: selectedOrder.chickType,
       loadedBoxWeight: sum(orderDeliveryForm.loadedWeightsList, 0),
       emptyBoxWeight: sum(orderDeliveryForm.emptyWeightsList, 0),
@@ -240,7 +260,7 @@ export default function App() {
     };
 
     try {
-      const res = await fetch("/deliveries", {
+      const res = await fetch(getBackendUrl("/deliveries"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -274,7 +294,7 @@ export default function App() {
     try {
       // Delete all orders one by one since we don't have a bulk delete endpoint
       for (const order of orders) {
-        await fetch(`/orders/${order.id}`, {
+        await fetch(getBackendUrl(`/orders/${order.id}`), {
           method: 'DELETE'
         });
       }
@@ -295,7 +315,7 @@ export default function App() {
       );
       
       for (const order of ordersToDelete) {
-        await fetch(`/orders/${order.id}`, {
+        await fetch(getBackendUrl(`/orders/${order.id}`), {
           method: 'DELETE'
         });
       }
@@ -309,7 +329,7 @@ export default function App() {
   }
   async function deleteDelivery(id: number) {
     try {
-      const res = await fetch(`/deliveries/${id}`, {
+      const res = await fetch(getBackendUrl(`/deliveries/${id}`), {
         method: "DELETE",
       });
       if (res.ok) {
@@ -323,7 +343,7 @@ export default function App() {
 
   async function deleteAllDeliveries() {
     try {
-      const res = await fetch('/deliveries', {
+      const res = await fetch(getBackendUrl('/deliveries'), {
         method: "DELETE",
       });
       if (res.ok) {
@@ -339,7 +359,7 @@ export default function App() {
     if (!selectedDate) return;
     
     try {
-      const res = await fetch(`/deliveries/date/${selectedDate}`, {
+      const res = await fetch(getBackendUrl(`/deliveries/date/${selectedDate}`), {
         method: "DELETE",
       });
       if (res.ok) {
@@ -382,7 +402,7 @@ export default function App() {
     };
 
     try {
-      const res = await fetch(`/deliveries/${editingDelivery.id}`, {
+      const res = await fetch(getBackendUrl(`/deliveries/${editingDelivery.id}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -428,7 +448,7 @@ export default function App() {
     };
 
     try {
-      const res = await fetch("/deliveries", {
+      const res = await fetch(getBackendUrl("/deliveries"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -444,7 +464,6 @@ export default function App() {
         setTempLoadedWeight("");
         setTempEmptyWeight("");
         setNotes("");
-        setPhoto(null);
         await loadDeliveries();
       } else {
         const text = await res.text();
@@ -514,77 +533,98 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 *Suja Chick Delivery Service* 🚚`;
   }
 
+  // Show splash screen on first load
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   // Show admin login screen if not authenticated
   if (!isAdminAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <div className="absolute top-4 right-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        
+        <div className="absolute top-4 left-4 z-10">
           <LanguageSwitcher />
         </div>
-        <div className="max-w-md w-full">
+        
+        <div className="max-w-md w-full relative z-10">
           {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4">🔐</div>
-            <h1 className="text-3xl font-bold text-red-800">{t('admin.login')}</h1>
-            <p className="text-red-600">Suja Chick Delivery - {t('admin.title')}</p>
+          <div className="text-center mb-10">
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-32 mx-auto mb-6 hover:drop-shadow-xl transition-all" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">{t('admin.login')}</h1>
+            <p className="text-gray-600 font-medium">Suja Chick Delivery - {t('admin.title')}</p>
           </div>
 
           {/* Admin Login Form */}
-          <form onSubmit={handleAdminLogin} className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-red-500">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">🛡️ {t('admin.verify')}</h2>
+          <form onSubmit={handleAdminLogin} className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100 hover:shadow-2xl transition-shadow">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-8 text-center">🛡️ {t('admin.verify')}</h2>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📱 {t('admin.mobile')}
-              </label>
-              <input
-                type="tel"
-                value={adminMobile}
-                onChange={(e) => setAdminMobile(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-lg px-3 py-3 focus:border-red-500 focus:outline-none text-lg"
-                placeholder="Enter your registered mobile number"
-                required
-              />
+            <div className="space-y-6">
+              {/* Mobile Number */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  📱 {t('admin.mobile')}
+                </label>
+                <input
+                  type="tel"
+                  value={adminMobile}
+                  onChange={(e) => setAdminMobile(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  placeholder="Enter your registered mobile number"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-2">Your registered admin mobile number</p>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  🔒 {t('admin.password')}
+                </label>
+                <input
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  placeholder="Enter admin password"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-2">Secure admin password</p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                🚪 {t('admin.verify')}
+              </button>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🔒 {t('admin.password')}
-              </label>
-              <input
-                type="password"
-                value={adminPasswordInput}
-                onChange={(e) => setAdminPasswordInput(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-lg px-3 py-3 focus:border-red-500 focus:outline-none text-lg"
-                placeholder="Enter admin password"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold text-lg"
-            >
-              🚪 {t('admin.verify')}
-            </button>
-
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-xs text-green-700">
-                ✅ After verification, you'll have access for 1 week without re-entering your mobile number.
+            {/* Info Box */}
+            <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4">
+              <p className="text-sm text-green-700 font-medium text-center">
+                ✅ After verification, you'll have access for 1 week without re-entering your credentials.
               </p>
             </div>
 
-            <div className="mt-6 text-center">
+            {/* Back to Customer Portal */}
+            <div className="mt-6 text-center border-t border-gray-200 pt-6">
               <a 
                 href="/" 
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors group"
               >
-                ← {t('btn.back')} {t('customer.title')}
+                <span>←</span>
+                <span>{t('btn.back')} {t('customer.title')}</span>
               </a>
             </div>
 
-            <div className="mt-4 bg-gray-50 p-3 rounded text-center">
-              <p className="text-xs text-gray-600">
+            {/* Security Notice */}
+            <div className="mt-4 bg-blue-50 p-4 rounded-2xl text-center border border-blue-200">
+              <p className="text-xs text-blue-700 font-medium">
                 🔒 This area is restricted to authorized administrators only
               </p>
             </div>
@@ -594,105 +634,253 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
     );
   }
 
+  // Edit Order Page - Full Page View
+  if (editingOrder) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        
+        <div className="max-w-3xl mx-auto relative z-10">
+          {/* Header with Logo */}
+          <div className="text-center mb-8">
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-1">Suja Chick Delivery</h1>
+            <p className="text-teal-600 font-medium">Edit Order</p>
+          </div>
+
+          {/* Back Button */}
+          <button
+            onClick={() => setEditingOrder(null)}
+            className="mb-6 px-6 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm hover:shadow-md"
+          >
+            ← Back to Order
+          </button>
+
+          {/* Edit Order Form */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">✏️ Edit Order #{editingOrder.id}</h2>
+            
+            <div className="space-y-6">
+              {/* Customer Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">👤 Customer Name</label>
+                <input
+                  type="text"
+                  value={editingOrder.customerName}
+                  onChange={(e) => setEditingOrder({...editingOrder, customerName: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  placeholder="Enter customer name"
+                />
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">📱 Phone Number</label>
+                <input
+                  type="tel"
+                  value={editingOrder.customerPhone}
+                  onChange={(e) => setEditingOrder({...editingOrder, customerPhone: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  placeholder="Enter phone number"
+                />
+              </div>
+
+              {/* Chick Type */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">🐔 Chick Type</label>
+                <select
+                  value={editingOrder.chickType}
+                  onChange={(e) => setEditingOrder({...editingOrder, chickType: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                >
+                  <option>Boiler</option>
+                  <option>Layer</option>
+                  <option>Natukodi</option>
+                  <option>Lingapuram</option>
+                </select>
+              </div>
+
+              {/* Number of Boxes */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">📦 Number of Boxes</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0.5"
+                  value={editingOrder.quantity}
+                  onChange={(e) => setEditingOrder({...editingOrder, quantity: Number(e.target.value)})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  placeholder="Enter number of boxes"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">📋 Notes</label>
+                <textarea
+                  value={editingOrder.notes}
+                  onChange={(e) => setEditingOrder({...editingOrder, notes: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-base transition-all bg-gray-50 focus:bg-white hover:border-gray-300"
+                  rows={4}
+                  placeholder="Add any notes..."
+                />
+              </div>
+
+              {/* Order Status Info */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-200">
+                <p className="text-sm text-gray-600 font-semibold mb-2">📊 Order Status</p>
+                <p className="text-lg font-bold text-gray-900">{editingOrder.status.charAt(0).toUpperCase() + editingOrder.status.slice(1)}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(getBackendUrl(`/orders/${editingOrder.id}`), {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          status: editingOrder.status,
+                          customerName: editingOrder.customerName,
+                          customerPhone: editingOrder.customerPhone,
+                          chickType: editingOrder.chickType,
+                          quantity: editingOrder.quantity,
+                          notes: editingOrder.notes
+                        })
+                      });
+                      if (res.ok) {
+                        await loadOrders();
+                        setEditingOrder(null);
+                        setSelectedOrder(null);
+                      }
+                    } catch (err) {
+                      alert('Failed to update order');
+                    }
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  ✅ Save Changes
+                </button>
+                <button
+                  onClick={() => setEditingOrder(null)}
+                  className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm hover:shadow-md"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedDelivery) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 p-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        
+        <div className="max-w-3xl mx-auto relative z-10">
           {/* Header with Logo */}
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-2">🐣</div>
-            <h1 className="text-3xl font-bold text-orange-800">Suja Chick Delivery</h1>
-            <p className="text-orange-600">Delivery Details</p>
+          <div className="text-center mb-8">
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-1">Suja Chick Delivery</h1>
+            <p className="text-teal-600 font-medium">Delivery Details</p>
           </div>
 
           {/* Back Button */}
           <button
             onClick={() => setSelectedDelivery(null)}
-            className="mb-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            className="mb-6 px-6 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm hover:shadow-md"
           >
             ← Back to List
           </button>
 
           {/* Detailed Delivery View */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-            <div className="flex justify-between items-start mb-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">{selectedDelivery.customerName}</h2>
-                <p className="text-lg text-orange-600">{selectedDelivery.chickType}</p>
+                <h2 className="text-3xl font-bold text-gray-900">{selectedDelivery.customerName}</h2>
+                <p className="text-lg text-teal-600 font-semibold mt-1">{selectedDelivery.chickType}</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">{formatDateWithOrdinal(selectedDelivery.createdAt)}</p>
-                <p className="text-3xl font-bold text-green-600">{selectedDelivery.netWeight.toFixed(2)} kg</p>
-                <p className="text-sm text-green-700">Net Weight</p>
-                <p className="text-xs text-gray-500">
+              <div className="text-right bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                <p className="text-sm text-gray-600 mb-1">{formatDateWithOrdinal(selectedDelivery.createdAt)}</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{selectedDelivery.netWeight.toFixed(2)} kg</p>
+                <p className="text-sm text-gray-700 font-semibold">Net Weight</p>
+                <p className="text-xs text-gray-600 mt-2">
                   {selectedDelivery.numberOfBoxes ? `${selectedDelivery.numberOfBoxes} boxes (info only)` : 'Boxes not specified'}
                 </p>
               </div>
             </div>
 
             {/* Weight Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-3">📈 Loaded Box Weights</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-900 mb-4 text-lg">📈 Loaded Box Weights</h3>
                 {selectedDelivery.loadedWeightsList && selectedDelivery.loadedWeightsList.length > 0 ? (
                   <div className="space-y-2">
                     {selectedDelivery.loadedWeightsList.map((weight, index) => (
-                      <div key={index} className="flex justify-between bg-white p-2 rounded">
-                        <span>Measurement {index + 1}:</span>
-                        <span className="font-semibold">{weight.toFixed(2)} kg</span>
+                      <div key={index} className="flex justify-between bg-white p-3 rounded-lg border border-blue-100">
+                        <span className="text-gray-700">Measurement {index + 1}:</span>
+                        <span className="font-bold text-blue-700">{weight.toFixed(2)} kg</span>
                       </div>
                     ))}
-                    <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between font-bold text-blue-800">
+                    <div className="border-t-2 border-blue-200 pt-3 mt-3">
+                      <div className="flex justify-between font-bold text-blue-900 bg-blue-100 p-3 rounded-lg">
                         <span>Total:</span>
                         <span>{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white p-2 rounded">
-                    <span className="font-semibold">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span>
+                  <div className="bg-white p-3 rounded-lg border border-blue-100">
+                    <span className="font-bold text-blue-700">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span>
                   </div>
                 )}
               </div>
 
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-red-800 mb-3">📉 Empty Box Weights</h3>
+              <div className="bg-gradient-to-br from-red-50 to-pink-50 p-6 rounded-xl border border-red-200">
+                <h3 className="font-bold text-red-900 mb-4 text-lg">📉 Empty Box Weights</h3>
                 {selectedDelivery.emptyWeightsList && selectedDelivery.emptyWeightsList.length > 0 ? (
                   <div className="space-y-2">
                     {selectedDelivery.emptyWeightsList.map((weight, index) => (
-                      <div key={index} className="flex justify-between bg-white p-2 rounded">
-                        <span>Measurement {index + 1}:</span>
-                        <span className="font-semibold">{weight.toFixed(2)} kg</span>
+                      <div key={index} className="flex justify-between bg-white p-3 rounded-lg border border-red-100">
+                        <span className="text-gray-700">Measurement {index + 1}:</span>
+                        <span className="font-bold text-red-700">{weight.toFixed(2)} kg</span>
                       </div>
                     ))}
-                    <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between font-bold text-red-800">
+                    <div className="border-t-2 border-red-200 pt-3 mt-3">
+                      <div className="flex justify-between font-bold text-red-900 bg-red-100 p-3 rounded-lg">
                         <span>Total:</span>
                         <span>{selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white p-2 rounded">
-                    <span className="font-semibold">{selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span>
+                  <div className="bg-white p-3 rounded-lg border border-red-100">
+                    <span className="font-bold text-red-700">{selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Summary */}
-            <div className="bg-green-50 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold text-green-800 mb-3">📊 Weight Summary</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Number of Boxes</p>
-                  <p className="font-semibold text-lg">{selectedDelivery.numberOfBoxes || 'Not specified'}</p>
-                  <p className="text-xs text-gray-500">(Information only)</p>
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200 mb-8">
+              <h3 className="font-bold text-green-900 mb-4 text-lg">📊 Weight Summary</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="bg-white p-4 rounded-lg border border-green-100">
+                  <p className="text-xs text-gray-600 font-semibold mb-1">Number of Boxes</p>
+                  <p className="font-bold text-lg text-gray-900">{selectedDelivery.numberOfBoxes || 'N/A'}</p>
+                  <p className="text-xs text-gray-500 mt-1">(Info only)</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Measurements</p>
-                  <p className="font-semibold text-lg">
+                <div className="bg-white p-4 rounded-lg border border-green-100">
+                  <p className="text-xs text-gray-600 font-semibold mb-1">Total Measurements</p>
+                  <p className="font-bold text-lg text-gray-900">
                     {Math.max(
                       (selectedDelivery.loadedWeightsList?.length || 0),
                       (selectedDelivery.emptyWeightsList?.length || 0),
@@ -700,33 +888,33 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     )}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Loaded Weight</p>
-                  <p className="font-semibold text-lg text-blue-700">
+                <div className="bg-white p-4 rounded-lg border border-blue-100">
+                  <p className="text-xs text-gray-600 font-semibold mb-1">Total Loaded</p>
+                  <p className="font-bold text-lg text-blue-700">
                     {selectedDelivery.loadedBoxWeight.toFixed(2)} kg
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Empty Weight</p>
-                  <p className="font-semibold text-lg text-red-700">
+                <div className="bg-white p-4 rounded-lg border border-red-100">
+                  <p className="text-xs text-gray-600 font-semibold mb-1">Total Empty</p>
+                  <p className="font-bold text-lg text-red-700">
                     {selectedDelivery.emptyBoxWeight.toFixed(2)} kg
                   </p>
                 </div>
               </div>
-              <div className="mt-3 p-3 bg-white rounded border-2 border-green-300">
-                <p className="text-center text-green-800">
-                  <span className="font-bold">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span> (loaded) - 
-                  <span className="font-bold"> {selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span> (empty) = 
-                  <span className="font-bold text-lg"> {selectedDelivery.netWeight.toFixed(2)} kg</span> (net)
+              <div className="p-4 bg-white rounded-lg border-2 border-green-300">
+                <p className="text-center text-gray-800 font-semibold">
+                  <span className="text-blue-700">{selectedDelivery.loadedBoxWeight.toFixed(2)} kg</span> (loaded) − 
+                  <span className="text-red-700"> {selectedDelivery.emptyBoxWeight.toFixed(2)} kg</span> (empty) = 
+                  <span className="text-green-700 text-lg"> {selectedDelivery.netWeight.toFixed(2)} kg</span> (net)
                 </p>
               </div>
             </div>
 
             {/* Notes */}
             {selectedDelivery.notes && (
-              <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-yellow-800 mb-2">📋 Notes</h3>
-                <p className="text-gray-700">{selectedDelivery.notes}</p>
+              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-xl border border-amber-200 mb-8">
+                <h3 className="font-bold text-amber-900 mb-3">📋 Notes</h3>
+                <p className="text-gray-800">{selectedDelivery.notes}</p>
               </div>
             )}
 
@@ -738,7 +926,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                   window.open(whatsappUrl, '_blank');
                 }}
-                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 📱 Share on WhatsApp
               </button>
@@ -752,19 +940,19 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     alert('Copy failed');
                   }
                 }}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 📋 Copy Details
               </button>
               <button
                 onClick={() => deleteDelivery(selectedDelivery.id)}
-                className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                className="px-4 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 🗑️ Delete
               </button>
               <button
                 onClick={() => startEdit(selectedDelivery)}
-                className="px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-semibold"
+                className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 ✏️ Edit
               </button>
@@ -777,25 +965,31 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
   if (editingDelivery) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 p-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        
+        <div className="max-w-2xl mx-auto relative z-10">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="text-4xl mb-2">✏️</div>
-            <h1 className="text-3xl font-bold text-orange-800">Edit Delivery</h1>
-            <p className="text-orange-600">{editingDelivery.customerName}</p>
+            <div className="h-24 mb-4 flex justify-center">
+              <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-full object-contain drop-shadow-lg" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">Edit Delivery</h1>
+            <p className="text-teal-600 font-medium mt-2">{editingDelivery.customerName}</p>
           </div>
 
           {/* Back Button */}
           <button
             onClick={() => setEditingDelivery(null)}
-            className="mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="mb-4 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm"
           >
             ← Cancel
           </button>
 
           {/* Edit Form */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">👤 Customer Name</label>
@@ -990,39 +1184,236 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
       </div>
     );
   }
+
+  if (selectedOrder && !enteringDeliveryFromOrder) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+        
+        <div className="max-w-3xl mx-auto relative z-10">
+          {/* Header with Logo */}
+          <div className="text-center mb-8">
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-1">Suja Chick Delivery</h1>
+            <p className="text-teal-600 font-medium">Order Details</p>
+          </div>
+
+          {/* Back Button */}
+          <button
+            onClick={() => setSelectedOrder(null)}
+            className="mb-6 px-6 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm hover:shadow-md"
+          >
+            ← Back to Orders
+          </button>
+
+          {/* Order Information */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">{selectedOrder.customerName}</h2>
+                <p className="text-lg text-teal-600 font-semibold mt-1">Order #{selectedOrder.id}</p>
+              </div>
+              <div className="text-right bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
+                <p className="text-sm text-gray-600 mb-1">{formatDateWithOrdinal(selectedOrder.createdAt)}</p>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                  selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                  selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                  selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
+                  'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                </span>
+              </div>
+            </div>
+
+            {/* Order Details Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-900 mb-4 text-lg">📋 Order Information</h3>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded-lg border border-blue-100">
+                    <p className="text-xs text-gray-600 font-semibold mb-1">🐔 Chick Type</p>
+                    <p className="font-bold text-gray-900">{selectedOrder.chickType}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-blue-100">
+                    <p className="text-xs text-gray-600 font-semibold mb-1">📦 Number of Boxes</p>
+                    <p className="font-bold text-gray-900">{selectedOrder.quantity}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-6 rounded-xl border border-teal-200">
+                <h3 className="font-bold text-teal-900 mb-4 text-lg">📱 Customer Information</h3>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded-lg border border-teal-100">
+                    <p className="text-xs text-gray-600 font-semibold mb-1">👤 Customer Name</p>
+                    <p className="font-bold text-gray-900">{selectedOrder.customerName}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-teal-100">
+                    <p className="text-xs text-gray-600 font-semibold mb-1">📞 Phone Number</p>
+                    <p className="font-bold text-gray-900">{selectedOrder.customerPhone}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {selectedOrder.notes && (
+              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-xl border border-amber-200 mb-8">
+                <h3 className="font-bold text-amber-900 mb-3">📋 Notes</h3>
+                <p className="text-gray-800">{selectedOrder.notes}</p>
+              </div>
+            )}
+
+            {/* Messaging Section */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200 mb-8">
+              <h3 className="font-bold text-green-900 mb-4">💬 Send Message to Customer</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const message = `Hi ${selectedOrder.customerName}, your order for ${selectedOrder.quantity} boxes of ${selectedOrder.chickType} chicks has been ${selectedOrder.status === 'confirmed' ? 'confirmed' : selectedOrder.status === 'delivered' ? 'delivered' : 'received'}. Order ID: #${selectedOrder.id}. Thank you for choosing Suja Chick Delivery! 🐣`;
+                    const whatsappUrl = `https://wa.me/${selectedOrder.customerPhone}?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  💬 WhatsApp Message
+                </button>
+                <button
+                  onClick={() => {
+                    const message = `Hi ${selectedOrder.customerName}, your order for ${selectedOrder.quantity} boxes of ${selectedOrder.chickType} chicks has been ${selectedOrder.status === 'confirmed' ? 'confirmed' : selectedOrder.status === 'delivered' ? 'delivered' : 'received'}. Order ID: #${selectedOrder.id}. Thank you for choosing Suja Chick Delivery! 🐣`;
+                    const smsUrl = `sms:${selectedOrder.customerPhone}?body=${encodeURIComponent(message)}`;
+                    window.location.href = smsUrl;
+                  }}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  📱 SMS Message
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
+              {selectedOrder.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'confirmed')}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    ✅ Confirm Order
+                  </button>
+                  <button
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    ❌ Cancel Order
+                  </button>
+                </>
+              )}
+              {selectedOrder.status === 'confirmed' && (
+                <button
+                  onClick={() => setEnteringDeliveryFromOrder(true)}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  📝 Submit Delivery Details
+                </button>
+              )}
+              {selectedOrder.status === 'delivered' && (
+                <button
+                  onClick={() => setEnteringDeliveryFromOrder(true)}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  ✏️ Edit Delivery Details
+                </button>
+              )}
+              <button
+                onClick={() => deleteOrder(selectedOrder.id)}
+                className="px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                🗑️ Delete Order
+              </button>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl transition-all font-semibold"
+              >
+                ❌ Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+      
+      <div className="max-w-6xl mx-auto relative z-10">
         {/* Header with Logo */}
-        <div className="text-center mb-6">
-          <div className="absolute top-4 right-4">
+        <div className="text-center mb-10">
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
             <LanguageSwitcher />
           </div>
-          <div className="text-6xl mb-3">🐣</div>
-          <h1 className="text-4xl font-bold text-orange-800 mb-2">Suja Chick Delivery</h1>
-          <p className="text-orange-600">{t('admin.title')} - {t('admin.newDelivery')}</p>
-          <div className="mt-2 flex justify-center items-center gap-4">
-            <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-              API: {health ?? "checking..."}
-            </span>
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
             <a 
               href="/" 
-              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
+              className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl font-semibold transition-all text-sm border border-gray-200 shadow-sm"
             >
               👥 {t('customer.title')}
             </a>
             <button
               onClick={handleAdminLogout}
-              className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200 transition-colors"
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-semibold transition-all text-sm border border-red-200"
             >
               🚪 {t('btn.logout')}
             </button>
           </div>
+          <div className="h-28 mb-6 flex justify-center">
+            <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-full object-contain hover:drop-shadow-xl transition-all" />
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">Suja Chick Delivery</h1>
+          <p className="text-gray-600 font-medium">{t('admin.title')} - {t('admin.newDelivery')}</p>
+          <div className="mt-6 flex justify-center items-center gap-3 flex-wrap">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
+              API: {health ?? "checking..."}
+            </span>
+          </div>
         </div>
 
-        {/* Delivery Form - HIDDEN */}
-        {false && (
-        <form className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-orange-500" onSubmit={submit}>
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-3xl shadow-lg p-4 mb-8 border border-gray-100">
+          <div className="flex space-x-2 bg-gray-100 rounded-2xl p-1">
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                activeTab === 'deliveries' 
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              📋 {t('admin.addDelivery')} ({deliveries.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                activeTab === 'orders' 
+                  ? 'bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              🛒 {t('admin.customerOrders')} ({orders.length})
+            </button>
+          </div>
+        </div>
+
+        {/* New Delivery Form */}
+        {activeTab === 'deliveries' && (
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4">📝 {t('admin.newDelivery')}</h2>
           
           <div className="grid grid-cols-1 gap-4">
@@ -1199,7 +1590,8 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     (For information only)
                   </p>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={submit}
                     className="mt-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-bold text-lg"
                   >
                     ✅ {t('form.submitDelivery')}
@@ -1208,39 +1600,17 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               </div>
             </div>
           </div>
-        </form>
-        )}
-
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 mb-6">
-          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-4">
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'orders' ? 'bg-green-600 text-white' : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              🛒 {t('admin.customerOrders')} ({orders.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('deliveries')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'deliveries' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              📋 {t('admin.recentDeliveries')} ({deliveries.length})
-            </button>
-          </div>
         </div>
+        )}
 
         {/* Recent Deliveries */}
         {activeTab === 'deliveries' && (
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">📋 {t('admin.recentDeliveries')}</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">📋 {t('admin.addDelivery')}</h2>
             <button
               onClick={() => setShowDeleteOptions(!showDeleteOptions)}
-              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+              className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl transition-all font-semibold text-sm shadow-lg"
             >
               🗑️ {t('admin.deleteOptions')}
             </button>
@@ -1248,46 +1618,46 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
           {/* Delete Options Panel */}
           {showDeleteOptions && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-              <h3 className="font-semibold text-red-800 mb-3">⚠️ {t('admin.deleteOptions')}</h3>
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 mb-6">
+              <h3 className="font-bold text-red-800 mb-4 text-lg">⚠️ {t('admin.deleteOptions')}</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Delete All */}
-                <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteAll')}</h4>
+                <div className="bg-white p-4 rounded-lg border border-red-200">
+                  <h4 className="font-semibold text-gray-800 mb-2">{t('admin.deleteAll')}</h4>
                   <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL delivery records.</p>
                   <button
                     onClick={deleteAllDeliveries}
-                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all font-semibold"
                   >
                     🗑️ {t('admin.deleteAll')} ({deliveries.length} items)
                   </button>
                 </div>
 
                 {/* Delete by Date */}
-                <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
+                <div className="bg-white p-4 rounded-lg border border-red-200">
+                  <h4 className="font-semibold text-gray-800 mb-2">{t('admin.deleteByDate')}</h4>
                   <p className="text-sm text-gray-600 mb-3">Delete all deliveries from a specific date.</p>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                    className="w-full border rounded-lg px-3 py-2 mb-2 text-sm bg-white border-gray-200 focus:border-blue-500 focus:outline-none"
                   />
                   <button
                     onClick={deleteByDate}
                     disabled={!selectedDate}
-                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all font-semibold disabled:opacity-50"
                   >
                     🗑️ {t('admin.deleteByDate')}
                   </button>
                 </div>
               </div>
 
-              <div className="mt-3 text-center">
+              <div className="mt-4 text-center">
                 <button
                   onClick={() => setShowDeleteOptions(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all border border-gray-300"
                 >
                   ❌ {t('btn.cancel')}
                 </button>
@@ -1295,30 +1665,30 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
             </div>
           )}
           {loading ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">⏳</div>
-              <p>Loading deliveries...</p>
+            <div className="text-center py-12">
+              <div className="text-5xl mb-3">⏳</div>
+              <p className="text-white/70">Loading deliveries...</p>
             </div>
           ) : deliveries.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {deliveries.map((d) => (
                 <div 
                   key={d.id} 
-                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors cursor-pointer"
+                  className="border-2 border-gray-200 rounded-2xl p-6 hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group"
                   onClick={() => setSelectedDelivery(d)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-800">{d.customerName}</h3>
-                      <p className="text-orange-600 font-medium">{d.chickType}</p>
-                      <p className="text-sm text-gray-500">{formatDateWithOrdinal(d.createdAt)}</p>
+                      <h3 className="font-bold text-lg text-gray-800 group-hover:text-blue-700 transition-colors">{d.customerName}</h3>
+                      <p className="text-teal-600 font-semibold mt-1">{d.chickType}</p>
+                      <p className="text-sm text-gray-500 mt-1">{formatDateWithOrdinal(d.createdAt)}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
                       <p className="text-2xl font-bold text-green-600">{d.netWeight.toFixed(2)} kg</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-600 mt-1">
                         Net Weight
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500 mt-1">
                         {d.numberOfBoxes ? `${d.numberOfBoxes} boxes (info)` : 'Boxes not specified'}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -1327,16 +1697,16 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     </div>
                   </div>
                   {d.notes && (
-                    <p className="text-sm text-gray-600 mt-2 italic">📝 {d.notes}</p>
+                    <p className="text-sm text-gray-600 mt-3 italic">📝 {d.notes}</p>
                   )}
-                  <div className="mt-3 text-sm text-orange-600 font-medium flex justify-between items-center">
+                  <div className="mt-4 text-sm text-blue-600 font-semibold flex justify-between items-center">
                     <span>👆 Tap for detailed view</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         startEdit(d);
                       }}
-                      className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors text-xs font-semibold"
+                      className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all text-xs font-semibold"
                     >
                       ✏️ Edit
                     </button>
@@ -1345,15 +1715,15 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">📦</div>
-              <p className="text-gray-500">No deliveries yet. Add your first delivery above!</p>
+            <div className="text-center py-12">
+              <div className="text-5xl mb-3">📦</div>
+              <p className="text-gray-600">No deliveries yet. Add your first delivery above!</p>
             </div>
           )}
 
           {/* Total Weight Summary */}
           {deliveries.length > 0 && (
-            <div className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-300">
+            <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl border-2 border-green-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500 text-center">
                   <p className="text-sm text-gray-600 mb-2">📈 {t('summary.totalLoaded')}</p>
@@ -1363,9 +1733,10 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                   <p className="text-sm text-gray-600 mb-2">📉 {t('summary.totalEmpty')}</p>
                   <p className="text-3xl font-bold text-red-600">{deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0).toFixed(2)} kg</p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-100 to-yellow-100 p-4 rounded-lg border-l-4 border-orange-600 text-center">
+                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-4 rounded-lg border-l-4 border-orange-500 text-center">
                   <p className="text-sm text-gray-700 font-semibold mb-2">🎯 {t('summary.grandTotal')}</p>
-                  <p className="text-3xl font-bold text-orange-700">{(deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0) + deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0)).toFixed(2)} kg</p>
+                  <p className="text-3xl font-bold text-orange-600">{(deliveries.reduce((sum, d) => sum + d.loadedBoxWeight, 0) - deliveries.reduce((sum, d) => sum + d.emptyBoxWeight, 0)).toFixed(2)} kg</p>
+                  <p className="text-xs text-gray-600 mt-1">(Net Weight)</p>
                 </div>
               </div>
             </div>
@@ -1375,19 +1746,19 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
         {/* Customer Orders Management */}
         {activeTab === 'orders' && (
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">🛒 Customer Orders</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">🛒 Customer Orders</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowOrderDeleteOptions(!showOrderDeleteOptions)}
-                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+                className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl transition-all font-semibold text-sm shadow-lg"
               >
                 🗑️ Delete Options
               </button>
               <button
                 onClick={loadOrders}
-                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl transition-all font-semibold text-sm shadow-lg"
               >
                 🔄 Refresh Orders
               </button>
@@ -1396,46 +1767,46 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
 
           {/* Order Delete Options Panel */}
           {showOrderDeleteOptions && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-              <h3 className="font-semibold text-red-800 mb-3">⚠️ Order Delete Options</h3>
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 mb-6">
+              <h3 className="font-bold text-red-800 mb-4 text-lg">⚠️ Order Delete Options</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Delete All Orders */}
-                <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">Delete All Orders</h4>
+                <div className="bg-white p-4 rounded-lg border border-red-100">
+                  <h4 className="font-semibold text-gray-800 mb-2">Delete All Orders</h4>
                   <p className="text-sm text-gray-600 mb-3">This will permanently delete ALL customer orders.</p>
                   <button
                     onClick={deleteAllOrders}
-                    className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all font-semibold"
                   >
                     🗑️ Delete All ({orders.length} orders)
                   </button>
                 </div>
 
                 {/* Delete by Date */}
-                <div className="bg-white p-3 rounded border">
-                  <h4 className="font-medium text-gray-800 mb-2">Delete Orders by Date</h4>
+                <div className="bg-white p-4 rounded-lg border border-red-100">
+                  <h4 className="font-semibold text-gray-800 mb-2">Delete Orders by Date</h4>
                   <p className="text-sm text-gray-600 mb-3">Delete all orders from a specific date.</p>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full border rounded px-2 py-1 mb-2 text-sm"
+                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 mb-2 text-sm bg-white text-gray-800"
                   />
                   <button
                     onClick={deleteOrdersByDate}
                     disabled={!selectedDate}
-                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold disabled:bg-gray-400"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all font-semibold disabled:opacity-50"
                   >
                     🗑️ Delete by Date
                   </button>
                 </div>
               </div>
 
-              <div className="mt-3 text-center">
+              <div className="mt-4 text-center">
                 <button
                   onClick={() => setShowOrderDeleteOptions(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all border border-gray-200"
                 >
                   ❌ Cancel
                 </button>
@@ -1444,26 +1815,26 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
           )}
 
           {orders.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {orders.map((order) => (
                 <div 
                   key={order.id} 
-                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors cursor-pointer"
+                  className="bg-gray-50 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 rounded-xl p-5 transition-all cursor-pointer group"
                   onClick={() => setSelectedOrder(order)}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-800">{order.customerName}</h3>
-                      <p className="text-green-600 font-medium">{order.chickType} - {order.quantity} boxes</p>
-                      <p className="text-sm text-gray-500">📱 {order.customerPhone}</p>
-                      <p className="text-xs text-gray-400">Order #{order.id} - {formatDateWithOrdinal(order.createdAt)}</p>
+                      <h3 className="font-bold text-lg text-gray-800 group-hover:text-blue-700 transition-colors">{order.customerName}</h3>
+                      <p className="text-teal-600 font-semibold mt-1">{order.chickType} - {order.quantity} boxes</p>
+                      <p className="text-sm text-gray-600 mt-1">📱 {order.customerPhone}</p>
+                      <p className="text-xs text-gray-500">Order #{order.id} - {formatDateWithOrdinal(order.createdAt)}</p>
                     </div>
                     <div className="text-right">
                       <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
+                        'bg-red-100 text-red-800 border border-red-300'
                       }`}>
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
@@ -1474,7 +1845,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                     <p className="text-sm text-gray-600 mb-3 italic">📝 {order.notes}</p>
                   )}
                   
-                  <div className="text-sm text-green-600 font-medium">
+                  <div className="text-sm text-blue-600 font-medium">
                     👆 Tap for more details
                   </div>
                   
@@ -1486,7 +1857,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                             e.stopPropagation();
                             updateOrderStatus(order.id, 'confirmed');
                           }}
-                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold"
+                          className="px-3 py-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all text-sm font-semibold"
                         >
                           ✅ Confirm Order
                         </button>
@@ -1495,7 +1866,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                             e.stopPropagation();
                             updateOrderStatus(order.id, 'cancelled');
                           }}
-                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-semibold"
+                          className="px-3 py-1 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all text-sm font-semibold"
                         >
                           ❌ Cancel Order
                         </button>
@@ -1507,7 +1878,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                           e.stopPropagation();
                           updateOrderStatus(order.id, 'delivered');
                         }}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold"
+                        className="px-3 py-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all text-sm font-semibold"
                       >
                         🚚 Mark as Delivered
                       </button>
@@ -1517,7 +1888,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                         e.stopPropagation();
                         deleteOrder(order.id);
                       }}
-                      className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-semibold"
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all text-sm font-semibold border border-gray-200"
                     >
                       🗑️ Delete Order
                     </button>
@@ -1526,10 +1897,10 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">🛒</div>
-              <p className="text-gray-500">No customer orders yet.</p>
-              <p className="text-sm text-gray-400 mt-2">
+            <div className="text-center py-12">
+              <div className="text-5xl mb-3">🛒</div>
+              <p className="text-gray-600">No customer orders yet.</p>
+              <p className="text-sm text-gray-500 mt-2">
                 Orders placed by customers will appear here for processing.
               </p>
             </div>
@@ -1537,74 +1908,89 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         </div>
         )}
 
-        {/* Order Details Modal */}
+        {/* Order Details Full Page */}
         {selectedOrder && !enteringDeliveryFromOrder && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
-              <div className="sticky top-0 bg-green-600 text-white p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">📋 {t('order.details')}</h2>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="text-2xl hover:text-gray-200 transition-colors"
-                >
-                  ✕
-                </button>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 relative overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse"></div>
+            
+            <div className="max-w-3xl mx-auto relative z-10">
+              {/* Header with Logo */}
+              <div className="text-center mb-8">
+                <img src="https://res.cloudinary.com/dyobufbnk/image/upload/v1769773733/suja_ani_giaezc.png" alt="Suja Chicken & Eggs" className="h-24 mx-auto mb-3 drop-shadow-lg" />
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-1">Suja Chick Delivery</h1>
+                <p className="text-teal-600 font-medium">Order Details</p>
               </div>
 
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              {/* Back Button */}
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="mb-6 px-6 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200 shadow-sm hover:shadow-md"
+              >
+                ← Back to Orders
+              </button>
+
+              {/* Order Information */}
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
                   <div>
-                    <p className="text-sm text-gray-600">👤 {t('form.customerName')}</p>
-                    <p className="font-bold text-lg">{selectedOrder.customerName}</p>
+                    <h2 className="text-3xl font-bold text-gray-900">{selectedOrder.customerName}</h2>
+                    <p className="text-lg text-teal-600 font-semibold mt-1">Order #{selectedOrder.id}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">📱 {t('customer.phoneNumber')}</p>
-                    <p className="font-bold text-lg">{selectedOrder.customerPhone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">🐔 {t('form.chickType')}</p>
-                    <p className="font-bold text-lg">{selectedOrder.chickType}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">📦 {t('form.numberOfBoxes')}</p>
-                    <p className="font-bold text-lg">{selectedOrder.quantity}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">{t('order.status')}</p>
+                  <div className="text-right bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
+                    <p className="text-sm text-gray-600 mb-1">{formatDateWithOrdinal(selectedOrder.createdAt)}</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                      selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                      selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
+                      selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                      selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                      selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
+                      'bg-red-100 text-red-800 border border-red-300'
                     }`}>
                       {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                     </span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">📅 Date</p>
-                    <p className="font-bold text-lg">{formatDateWithOrdinal(selectedOrder.createdAt)}</p>
+                </div>
+
+                {/* Order Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                    <p className="text-sm text-gray-600 font-semibold mb-1">👤 Customer Name</p>
+                    <p className="font-bold text-lg text-gray-900">{selectedOrder.customerName}</p>
+                  </div>
+                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
+                    <p className="text-sm text-gray-600 font-semibold mb-1">📱 Phone Number</p>
+                    <p className="font-bold text-lg text-gray-900">{selectedOrder.customerPhone}</p>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                    <p className="text-sm text-gray-600 font-semibold mb-1">🐔 Chick Type</p>
+                    <p className="font-bold text-lg text-gray-900">{selectedOrder.chickType}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                    <p className="text-sm text-gray-600 font-semibold mb-1">📦 Number of Boxes</p>
+                    <p className="font-bold text-lg text-gray-900">{selectedOrder.quantity}</p>
                   </div>
                 </div>
 
                 {selectedOrder.notes && (
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">📝 {t('form.notes')}</p>
+                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-xl border border-amber-200 mb-8">
+                    <h3 className="font-bold text-amber-900 mb-3">📋 Notes</h3>
                     <p className="text-gray-800">{selectedOrder.notes}</p>
                   </div>
                 )}
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">💬 {t('order.sendMessage')}</p>
-                  <div className="flex gap-2">
+                {/* Messaging Section */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200 mb-8">
+                  <p className="text-sm text-gray-700 mb-4 font-semibold">💬 Send Message to Customer</p>
+                  <div className="flex gap-3">
                     <button
                       onClick={() => {
                         const message = `Hi ${selectedOrder.customerName}, your order for ${selectedOrder.quantity} boxes of ${selectedOrder.chickType} chicks has been ${selectedOrder.status === 'confirmed' ? 'confirmed' : selectedOrder.status === 'delivered' ? 'delivered' : 'received'}. Order ID: #${selectedOrder.id}. Thank you for choosing Suja Chick Delivery! 🐣`;
                         const whatsappUrl = `https://wa.me/${selectedOrder.customerPhone}?text=${encodeURIComponent(message)}`;
                         window.open(whatsappUrl, '_blank');
                       }}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-semibold"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-semibold shadow-lg hover:shadow-xl"
                     >
-                      💬 {t('order.whatsappMessage')}
+                      💬 WhatsApp Message
                     </button>
                     <button
                       onClick={() => {
@@ -1612,33 +1998,66 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
                         const smsUrl = `sms:${selectedOrder.customerPhone}?body=${encodeURIComponent(message)}`;
                         window.location.href = smsUrl;
                       }}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-lg hover:shadow-xl"
                     >
-                      📱 {t('order.smsMessage')}
+                      📱 SMS Message
                     </button>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t">
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  {selectedOrder.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => updateOrderStatus(selectedOrder.id, 'confirmed')}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        ✅ Confirm Order
+                      </button>
+                      <button
+                        onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        ❌ Cancel Order
+                      </button>
+                    </>
+                  )}
                   {selectedOrder.status === 'confirmed' && (
                     <button
                       onClick={() => setEnteringDeliveryFromOrder(true)}
-                      className="flex-1 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-semibold"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-xl hover:from-orange-700 hover:to-amber-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      📝 {t('form.submitDelivery')}
+                      📝 Submit Delivery Details
+                    </button>
+                  )}
+                  {selectedOrder.status === 'delivered' && (
+                    <button
+                      onClick={() => setEnteringDeliveryFromOrder(true)}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      ✏️ Edit Delivery Details
                     </button>
                   )}
                   <button
-                    onClick={() => setSelectedOrder(null)}
-                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+                    onClick={() => deleteOrder(selectedOrder.id)}
+                    className="px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
-                    ❌ {t('btn.close')}
+                    🗑️ Delete Order
+                  </button>
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all font-semibold border border-gray-200"
+                  >
+                    ❌ Close
                   </button>
                 </div>
               </div>
             </div>
           </div>
         )}
+
+
 
         {/* Delivery Entry from Order Modal */}
         {selectedOrder && enteringDeliveryFromOrder && (
