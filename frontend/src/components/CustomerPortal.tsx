@@ -82,8 +82,8 @@ export default function CustomerPortal() {
       
       console.log('Attempting', name ? 'register' : 'login', 'with:', payload);
       
-      // Use full backend URL
-      const backendUrl = 'http://localhost:4000';
+      // Use backend URL from environment variable
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const fullUrl = `${backendUrl}${endpoint}`;
       
       console.log('Calling API:', fullUrl);
@@ -139,7 +139,7 @@ export default function CustomerPortal() {
   async function loadDeliveries() {
     try {
       setLoading(true);
-      const backendUrl = 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const res = await fetch(`${backendUrl}/deliveries`);
       if (res.ok) {
         const data = await res.json();
@@ -160,7 +160,7 @@ export default function CustomerPortal() {
 
   async function loadCompletedOrders() {
     try {
-      const backendUrl = 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const res = await fetch(`${backendUrl}/orders`);
       if (res.ok) {
         const allOrders = await res.json();
@@ -273,7 +273,7 @@ ${d.notes ? `\n📋 *Notes:* ${d.notes}` : ''}
         customerPhone: finalPhone.trim()
       };
       
-      const backendUrl = 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const res = await fetch(`${backendUrl}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
