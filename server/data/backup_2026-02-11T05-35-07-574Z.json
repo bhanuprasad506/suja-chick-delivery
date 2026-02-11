@@ -1,0 +1,65 @@
+{
+  "deliveries": [
+    {
+      "id": 24,
+      "customerName": "vinay",
+      "customerPhone": "9515099453",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 12,
+      "emptyBoxWeight": 2,
+      "numberOfBoxes": 1,
+      "netWeight": 10,
+      "loadedWeightsList": [
+        12
+      ],
+      "emptyWeightsList": [
+        2
+      ],
+      "createdAt": "2026-02-11T03:32:06.150Z"
+    },
+    {
+      "id": 25,
+      "customerName": "vinay",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 10,
+      "emptyBoxWeight": 2,
+      "numberOfBoxes": 1,
+      "notes": "Order #1770780659187 - Delivered order",
+      "netWeight": 8,
+      "loadedWeightsList": [],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-11T03:32:06.168Z"
+    },
+    {
+      "id": 26,
+      "customerName": "bunny",
+      "customerPhone": "8519984203",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 23,
+      "emptyBoxWeight": 3,
+      "netWeight": 20,
+      "loadedWeightsList": [
+        23
+      ],
+      "emptyWeightsList": [
+        3
+      ],
+      "createdAt": "2026-02-11T03:32:26.667Z"
+    },
+    {
+      "id": 27,
+      "customerName": "bunny",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 10,
+      "emptyBoxWeight": 2,
+      "numberOfBoxes": 1,
+      "notes": "Order #1770780682765 - Delivered order",
+      "netWeight": 8,
+      "loadedWeightsList": [],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-11T03:32:26.682Z"
+    }
+  ],
+  "idCounter": 28,
+  "backupTime": "2026-02-11T05:35:07.574Z"
+}

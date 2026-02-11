@@ -464,37 +464,6 @@ app.put('/orders/:id', async (req, res) => {
     
     orders[orderIndex] = updatedOrder;
     
-    // If order is marked as delivered, create a corresponding delivery record and send SMS
-    if (updatedOrder.status === 'delivered') {
-      try {
-        const delivery = await storage.create({
-          customerName: updatedOrder.customerName,
-          chickType: updatedOrder.chickType,
-          loadedBoxWeight: updatedOrder.quantity * 10, // Estimate: 10kg per box
-          emptyBoxWeight: updatedOrder.quantity * 2,   // Estimate: 2kg per box
-          numberOfBoxes: updatedOrder.quantity,
-          notes: `Order #${updatedOrder.id} - ${updatedOrder.notes || 'Delivered order'}`,
-          loadedWeightsList: [],
-          emptyWeightsList: []
-        });
-        console.log('✅ Delivery record created from order:', delivery);
-
-        // Send SMS notification to customer
-        const smsMessage = `🐣 Suja Chick Delivery\n\nHi ${updatedOrder.customerName},\n\nYour order has been delivered!\n\n📦 Order Details:\n• Type: ${updatedOrder.chickType}\n• Quantity: ${updatedOrder.quantity} boxes\n• Status: Delivered\n\nThank you for your order!\n\n📞 Contact us for any queries.`;
-        
-        const smsSent = await sendSMSNotification(updatedOrder.customerPhone, smsMessage);
-        
-        if (smsSent) {
-          console.log('✅ SMS notification sent to:', updatedOrder.customerPhone);
-        } else {
-          console.log('⚠️ SMS notification could not be sent (service may not be configured)');
-        }
-      } catch (err) {
-        console.error('⚠️ Failed to create delivery from order:', err);
-        // Don't fail the order update if delivery creation fails
-      }
-    }
-    
     console.log('📝 Order updated:', updatedOrder);
     res.json(updatedOrder);
   } catch (err) {
