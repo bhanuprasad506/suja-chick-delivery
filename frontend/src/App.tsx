@@ -43,8 +43,10 @@ export default function App() {
   
   // Helper function to get backend URL
   const getBackendUrl = (path: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-    return `${baseUrl}${path}`;
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    const fullUrl = baseUrl ? `${baseUrl}${path}` : path;
+    console.log('API Call:', fullUrl, '(Base URL:', baseUrl || 'relative', ')');
+    return fullUrl;
   };
   const [health, setHealth] = useState<string | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
