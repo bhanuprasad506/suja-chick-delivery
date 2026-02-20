@@ -1,0 +1,21 @@
+{
+  "deliveries": [
+    {
+      "id": 43,
+      "customerName": "bunny",
+      "customerPhone": "8519984203",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 2,
+      "emptyBoxWeight": 0,
+      "netWeight": 2,
+      "loadedWeightsList": [
+        1,
+        1
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-20T13:23:28.147Z"
+    }
+  ],
+  "idCounter": 44,
+  "backupTime": "2026-02-20T13:24:30.201Z"
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "id": 1,
+    "customerPhone": "1234567890",
+    "customerName": "Test User",
+    "totalAmount": 0,
+    "totalPaid": 0,
+    "outstandingAmount": 0,
+    "createdAt": "2026-02-20T09:57:32.132Z",
+    "updatedAt": "2026-02-20T10:36:13.479Z",
+    "hidden": true
+  },
+  {
+    "id": 2,
+    "customerPhone": "8519984203",
+    "customerName": "bunny",
+    "totalAmount": 4,
+    "totalPaid": 0,
+    "outstandingAmount": 4,
+    "createdAt": "2026-02-20T09:57:32.134Z",
+    "updatedAt": "2026-02-20T13:40:28.540Z"
+  },
+  {
+    "id": 3,
+    "customerPhone": "9515099453",
+    "customerName": "vinay",
+    "totalAmount": 0,
+    "totalPaid": 0,
+    "outstandingAmount": 0,
+    "createdAt": "2026-02-20T09:57:32.136Z",
+    "updatedAt": "2026-02-20T09:57:32.136Z"
+  },
+  {
+    "id": 4,
+    "customerPhone": "97047 39562",
+    "customerName": "nir",
+    "totalAmount": 15129,
+    "totalPaid": 0,
+    "outstandingAmount": 15129,
+    "createdAt": "2026-02-20T09:57:32.137Z",
+    "updatedAt": "2026-02-20T12:04:00.181Z"
+  }
+]

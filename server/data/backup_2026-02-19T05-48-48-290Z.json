@@ -1,0 +1,20 @@
+{
+  "deliveries": [
+    {
+      "id": 33,
+      "customerName": "d",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 34,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 1,
+      "netWeight": 34,
+      "loadedWeightsList": [
+        34
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-19T05:48:26.187Z"
+    }
+  ],
+  "idCounter": 34,
+  "backupTime": "2026-02-19T05:48:48.290Z"
+}

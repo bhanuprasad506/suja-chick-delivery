@@ -1,0 +1,22 @@
+{
+  "deliveries": [
+    {
+      "id": 42,
+      "customerName": "nir",
+      "customerPhone": "97047 39562",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 246,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 1,
+      "netWeight": 246,
+      "loadedWeightsList": [
+        123,
+        123
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-20T12:03:54.181Z"
+    }
+  ],
+  "idCounter": 43,
+  "backupTime": "2026-02-20T12:05:51.239Z"
+}

@@ -1,0 +1,57 @@
+{
+  "deliveries": [
+    {
+      "id": 39,
+      "customerName": "nir",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 68,
+      "emptyBoxWeight": 3,
+      "numberOfBoxes": 1,
+      "netWeight": 65,
+      "loadedWeightsList": [
+        23,
+        45
+      ],
+      "emptyWeightsList": [
+        3
+      ],
+      "createdAt": "2026-02-20T11:36:22.615Z"
+    },
+    {
+      "id": 40,
+      "customerName": "nir",
+      "customerPhone": "97047 39562",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 345,
+      "emptyBoxWeight": 23,
+      "numberOfBoxes": 3,
+      "netWeight": 322,
+      "loadedWeightsList": [
+        345
+      ],
+      "emptyWeightsList": [
+        23
+      ],
+      "createdAt": "2026-02-20T11:37:09.682Z"
+    },
+    {
+      "id": 41,
+      "customerName": "nir",
+      "customerPhone": "97047 39562",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 123,
+      "emptyBoxWeight": 23,
+      "numberOfBoxes": 12,
+      "netWeight": 100,
+      "loadedWeightsList": [
+        123
+      ],
+      "emptyWeightsList": [
+        23
+      ],
+      "createdAt": "2026-02-20T11:44:55.276Z"
+    }
+  ],
+  "idCounter": 42,
+  "backupTime": "2026-02-20T11:45:51.193Z"
+}

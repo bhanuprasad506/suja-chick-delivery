@@ -1,0 +1,40 @@
+{
+  "deliveries": [
+    {
+      "id": 39,
+      "customerName": "nir",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 68,
+      "emptyBoxWeight": 3,
+      "numberOfBoxes": 1,
+      "netWeight": 65,
+      "loadedWeightsList": [
+        23,
+        45
+      ],
+      "emptyWeightsList": [
+        3
+      ],
+      "createdAt": "2026-02-20T11:36:22.615Z"
+    },
+    {
+      "id": 40,
+      "customerName": "nir",
+      "customerPhone": "97047 39562",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 345,
+      "emptyBoxWeight": 23,
+      "numberOfBoxes": 3,
+      "netWeight": 322,
+      "loadedWeightsList": [
+        345
+      ],
+      "emptyWeightsList": [
+        23
+      ],
+      "createdAt": "2026-02-20T11:37:09.682Z"
+    }
+  ],
+  "idCounter": 41,
+  "backupTime": "2026-02-20T11:40:51.192Z"
+}

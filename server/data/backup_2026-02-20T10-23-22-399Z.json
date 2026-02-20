@@ -1,0 +1,66 @@
+{
+  "deliveries": [
+    {
+      "id": 34,
+      "customerName": "bunny",
+      "customerPhone": "8519984203",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 2,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 1,
+      "netWeight": 2,
+      "loadedWeightsList": [
+        2
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-19T06:03:36.888Z"
+    },
+    {
+      "id": 35,
+      "customerName": "bunny",
+      "customerPhone": "8519984203",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 12,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 1,
+      "netWeight": 12,
+      "loadedWeightsList": [
+        12
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-19T06:03:46.229Z"
+    },
+    {
+      "id": 36,
+      "customerName": "bunny",
+      "customerPhone": "8519984203",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 1234,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 3,
+      "netWeight": 1234,
+      "loadedWeightsList": [
+        1234
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-19T06:20:28.996Z"
+    },
+    {
+      "id": 37,
+      "customerName": "nir",
+      "customerPhone": "97047 39562",
+      "chickType": "Boiler",
+      "loadedBoxWeight": 123,
+      "emptyBoxWeight": 0,
+      "numberOfBoxes": 1,
+      "netWeight": 123,
+      "loadedWeightsList": [
+        123
+      ],
+      "emptyWeightsList": [],
+      "createdAt": "2026-02-20T09:54:34.523Z"
+    }
+  ],
+  "idCounter": 38,
+  "backupTime": "2026-02-20T10:23:22.399Z"
+}

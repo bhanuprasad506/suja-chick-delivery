@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: suja-chick-delivery
+    env: node
+    plan: free
+    buildCommand: npm install && cd frontend && npm install && npm run build && cd ..
+    startCommand: node app.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: WEB_CONCURRENCY
+        value: 1

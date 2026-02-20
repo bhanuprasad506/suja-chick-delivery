@@ -1,0 +1,26 @@
+[
+  {
+    "id": 6,
+    "customerPhone": "97047 39562",
+    "customerName": "nir",
+    "type": "delivery",
+    "date": "2026-02-20T12:03:54.181Z",
+    "kgs": 123,
+    "pricePerKg": 123,
+    "amount": 15129,
+    "notes": "Delivery #42 - Boiler",
+    "createdAt": "2026-02-20T12:04:00.179Z"
+  },
+  {
+    "id": 7,
+    "customerPhone": "8519984203",
+    "customerName": "bunny",
+    "type": "delivery",
+    "date": "2026-02-20T13:23:28.147Z",
+    "kgs": 4,
+    "pricePerKg": 1,
+    "amount": 4,
+    "notes": "Delivery #43 - Boiler",
+    "createdAt": "2026-02-20T13:40:28.537Z"
+  }
+]
